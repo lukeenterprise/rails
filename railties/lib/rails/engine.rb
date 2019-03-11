@@ -566,6 +566,7 @@ module Rails
     initializer :set_autoload_paths, before: :bootstrap_hook do
       ActiveSupport::Dependencies.autoload_paths.unshift(*_all_autoload_paths)
       ActiveSupport::Dependencies.autoload_once_paths.unshift(*_all_autoload_once_paths)
+      ActiveSupport::Dependencies.eager_load_paths.unshift(*config.eager_load_paths)
 
       # Freeze so future modifications will fail rather than do nothing mysteriously
       config.autoload_paths.freeze

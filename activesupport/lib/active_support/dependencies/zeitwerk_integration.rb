@@ -5,6 +5,16 @@ require "active_support/core_ext/string/inflections"
 module ActiveSupport
   module Dependencies
     module ZeitwerkIntegration # :nodoc: all
+      class LazyLoader < SimpleDelegator
+        def initialize
+          super(Zeitwerk::Loader.new)
+        end
+
+        def eager_load
+          # noop
+        end
+      end
+
       module Decorations
         def clear
           Dependencies.unload_interlock do
@@ -60,10 +70,18 @@ module ActiveSupport
               # prevent misconfigurations.
               next unless File.directory?(autoload_path)
 
-              if autoload_once?(autoload_path)
-                Rails.autoloaders.once.push_dir(autoload_path)
+              if eager_load?(autoload_path)
+                if autoload_once?(autoload_path)
+                  Rails.autoloaders.once.push_dir(autoload_path)
+                else
+                  Rails.autoloaders.main.push_dir(autoload_path)
+                end
               else
-                Rails.autoloaders.main.push_dir(autoload_path)
+                if autoload_once?(autoload_path)
+                  Rails.autoloaders.lazy_once.push_dir(autoload_path)
+                else
+                  Rails.autoloaders.lazy.push_dir(autoload_path)
+                end
               end
             end
 
@@ -73,6 +91,10 @@ module ActiveSupport
           def autoload_once?(autoload_path)
             Dependencies.autoload_once_paths.include?(autoload_path) ||
             Gem.path.any? { |gem_path| autoload_path.to_s.start_with?(gem_path) }
+          end
+
+          def eager_load?(autoload_path)
+            Dependencies.eager_load_paths.include?(autoload_path)
           end
 
           def freeze_autoload_paths

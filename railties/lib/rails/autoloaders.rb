@@ -25,10 +25,30 @@ module Rails
         end
       end
 
+      def lazy
+        if zeitwerk_enabled?
+          @lazy ||= ActiveSupport::Dependencies::ZeitwerkIntegration::LazyLoader.new.tap do |loader|
+            loader.tag = "rails.lazy"
+            loader.inflector = ActiveSupport::Dependencies::ZeitwerkIntegration::Inflector
+          end
+        end
+      end
+
+      def lazy_once
+        if zeitwerk_enabled?
+          @lazy_once ||= ActiveSupport::Dependencies::ZeitwerkIntegration::LazyLoader.new.tap do |loader|
+            loader.tag = "rails.lazy_once"
+            loader.inflector = ActiveSupport::Dependencies::ZeitwerkIntegration::Inflector
+          end
+        end
+      end
+
       def each
         if zeitwerk_enabled?
           yield main
           yield once
+          yield lazy
+          yield lazy_once
         end
       end
 
