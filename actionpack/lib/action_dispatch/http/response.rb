@@ -144,7 +144,6 @@ module ActionDispatch # :nodoc:
       end
 
       private
-
         def each_chunk(&block)
           @buf.each(&block)
         end
@@ -420,7 +419,6 @@ module ActionDispatch # :nodoc:
     end
 
   private
-
     ContentTypeHeader = Struct.new :mime_type, :charset
     NullContentTypeHeader = ContentTypeHeader.new nil, nil
 

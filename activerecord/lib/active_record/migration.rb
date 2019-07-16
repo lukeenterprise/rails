@@ -568,7 +568,6 @@ module ActiveRecord
       end
 
       private
-
         def connection
           ActiveRecord::Base.connection
         end
@@ -993,7 +992,6 @@ module ActiveRecord
     delegate :migrate, :announce, :write, :disable_ddl_transaction, to: :migration
 
     private
-
       def migration
         @migration ||= load_migration
       end
@@ -1253,7 +1251,6 @@ module ActiveRecord
     end
 
     private
-
       # Used for running a specific migration.
       def run_without_lock
         migration = migrations.detect { |m| m.version == @target_version }

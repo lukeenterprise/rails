@@ -44,7 +44,6 @@ module ActiveRecord
         end
 
         private
-
           def read_from_primary(&blk)
             ActiveRecord::Base.connected_to(role: ActiveRecord::Base.writing_role) do
               ActiveRecord::Base.connection_handler.while_preventing_writes do

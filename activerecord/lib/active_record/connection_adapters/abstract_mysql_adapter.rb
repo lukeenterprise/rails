@@ -45,7 +45,6 @@ module ActiveRecord
 
       class StatementPool < ConnectionAdapters::StatementPool # :nodoc:
         private
-
           def dealloc(stmt)
             stmt.close
           end
@@ -516,7 +515,6 @@ module ActiveRecord
       end
 
       private
-
         def initialize_type_map(m = type_map)
           super
 
@@ -739,7 +737,7 @@ module ActiveRecord
           end.compact.join(", ")
 
           # ...and send them all in one query
-          execute "SET #{encoding} #{sql_mode_assignment} #{variable_assignments}"
+          execute("SET #{encoding} #{sql_mode_assignment} #{variable_assignments}", "SCHEMA")
         end
 
         def column_definitions(table_name) # :nodoc:
@@ -798,7 +796,6 @@ module ActiveRecord
           end
 
           private
-
             def cast_value(value)
               case value
               when true then "1"

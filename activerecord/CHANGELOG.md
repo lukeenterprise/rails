@@ -1,3 +1,19 @@
+*   Loading the schema for a model that has no `table_name` raises a `TableNotSpecified` error.
+
+    *Guilherme Mansur*, *Eugene Kenny*
+
+*   PostgreSQL: Fix GROUP BY with ORDER BY virtual count attribute.
+
+    Fixes #36022.
+
+    *Ryuta Kamizono*
+
+*   Make ActiveRecord `ConnectionPool.connections` method thread-safe.
+
+    Fixes #36465.
+
+    *Jeff Doering*
+
 *   Add support for multiple databases to `rails db:abort_if_pending_migrations`.
 
     *Mark Lee*
