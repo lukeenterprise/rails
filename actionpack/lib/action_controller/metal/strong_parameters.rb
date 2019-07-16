@@ -223,6 +223,12 @@ module ActionController
     #    config.always_permitted_parameters = %w( controller action format )
     cattr_accessor :always_permitted_parameters, default: %w( controller action )
 
+    class << self
+      def nested_attribute?(key, value) # :nodoc:
+        key =~ /\A-?\d+\z/ && (value.is_a?(Hash) || value.is_a?(Parameters))
+      end
+    end
+
     # Returns a new instance of <tt>ActionController::Parameters</tt>.
     # Also, sets the +permitted+ attribute to the default value of
     # <tt>ActionController::Parameters.permit_all_parameters</tt>.
@@ -687,6 +693,23 @@ module ActionController
       self
     end
 
+    # Returns a new <tt>ActionController::Parameters</tt> instance with the
+    # results of running +block+ once for every key. This includes the keys
+    # from the root hash and from all nested hashes and arrays. The values are unchanged.
+    def deep_transform_keys(&block)
+      new_instance_with_inherited_permitted_status(
+        @parameters.deep_transform_keys(&block)
+      )
+    end
+
+    # Returns the <tt>ActionController::Parameters</tt> instance changing its keys.
+    # This includes the keys from the root hash and from all nested hashes and arrays.
+    # The values are unchanged.
+    def deep_transform_keys!(&block)
+      @parameters.deep_transform_keys!(&block)
+      self
+    end
+
     # Deletes a key-value pair from +Parameters+ and returns the value. If
     # +key+ is not found, returns +nil+ (or, with optional code block, yields
     # +key+ and returns the result). Cf. +#extract!+, which returns the
@@ -809,8 +832,14 @@ module ActionController
 
       attr_writer :permitted
 
-      def fields_for_style?
-        @parameters.all? { |k, v| k =~ /\A-?\d+\z/ && (v.is_a?(Hash) || v.is_a?(Parameters)) }
+      def nested_attributes?
+        @parameters.any? { |k, v| Parameters.nested_attribute?(k, v) }
+      end
+
+      def each_nested_attribute
+        hash = self.class.new
+        self.each { |k, v| hash[k] = yield v if Parameters.nested_attribute?(k, v) }
+        hash
       end
 
     private
@@ -855,15 +884,13 @@ module ActionController
         end
       end
 
-      def each_element(object)
+      def each_element(object, &block)
         case object
         when Array
           object.grep(Parameters).map { |el| yield el }.compact
         when Parameters
-          if object.fields_for_style?
-            hash = object.class.new
-            object.each { |k, v| hash[k] = yield v }
-            hash
+          if object.nested_attributes?
+            object.each_nested_attribute(&block)
           else
             yield object
           end
