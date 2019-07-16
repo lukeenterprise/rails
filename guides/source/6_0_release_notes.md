@@ -215,6 +215,10 @@ Please refer to the [Changelog][action-pack] for detailed changes.
 
 ### Notable changes
 
+*   Change `ActionDispatch::Response#content_type` returning Content-Type
+    header as it is.
+    ([Pull Request](https://github.com/rails/rails/pull/36034))
+
 *   Raise an `ArgumentError` if a resource param contains a colon.
     ([Pull Request](https://github.com/rails/rails/pull/35236))
 
@@ -682,7 +686,7 @@ Please refer to the [Changelog][active-storage] for detailed changes.
 
 *   Use the `image_processing` gem for Active Storage variants. This replaces using
     `mini_magick` directly.
-    ([Pull Request](https://github.com/rails/rails/pull/32471)
+    ([Pull Request](https://github.com/rails/rails/pull/32471))
 
 *   Replace existing images instead of adding to them when updating an
     attached model via `update` or `update!` with, say, `@user.update!(images: [ … ])`.

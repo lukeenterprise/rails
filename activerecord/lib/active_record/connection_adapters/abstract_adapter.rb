@@ -78,7 +78,7 @@ module ActiveRecord
       SIMPLE_INT = /\A\d+\z/
 
       attr_accessor :pool
-      attr_reader :visitor, :owner, :logger, :lock, :prepared_statements
+      attr_reader :visitor, :owner, :logger, :lock, :prepared_statements, :prevent_writes
       alias :in_use? :owner
 
       set_callback :checkin, :after, :enable_lazy_transactions!
@@ -124,6 +124,8 @@ module ActiveRecord
         @config              = config
         @pool                = ActiveRecord::ConnectionAdapters::NullPool.new
         @idle_since          = Concurrent.monotonic_time
+        @quoted_column_names, @quoted_table_names = {}, {}
+        @prevent_writes = false
         @visitor = arel_visitor
         @statements = build_statement_pool
         @lock = ActiveSupport::Concurrency::LoadInterlockAwareMonitor.new

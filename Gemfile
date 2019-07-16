@@ -10,7 +10,7 @@ gemspec
 gem "rake", ">= 11.1"
 
 gem "capybara", ">= 2.15"
-gem "selenium-webdriver", ">= 3.141.592"
+gem "selenium-webdriver", ">= 3.5.0"
 
 gem "rack-cache", "~> 1.2"
 gem "sass-rails"
@@ -30,6 +30,7 @@ gem "json", ">= 2.0.0"
 
 gem "rubocop", ">= 0.47", require: false
 gem "rubocop-performance", require: false
+gem "rubocop-rails", require: false
 
 group :doc do
   gem "sdoc", "~> 1.0"

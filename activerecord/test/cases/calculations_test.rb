@@ -596,11 +596,7 @@ class CalculationsTest < ActiveRecord::TestCase
   end
 
   def test_should_sum_expression
-    if current_adapter?(:SQLite3Adapter, :Mysql2Adapter, :PostgreSQLAdapter, :OracleAdapter)
-      assert_equal 636, Account.sum("2 * credit_limit")
-    else
-      assert_equal 636, Account.sum("2 * credit_limit").to_i
-    end
+    assert_equal 636, Account.sum("2 * credit_limit")
   end
 
   def test_sum_expression_returns_zero_when_no_records_to_sum
@@ -850,7 +846,7 @@ class CalculationsTest < ActiveRecord::TestCase
 
   def test_pluck_columns_with_same_name
     expected = [["The First Topic", "The Second Topic of the day"], ["The Third Topic of the day", "The Fourth Topic of the day"]]
-    actual = Topic.joins(:replies)
+    actual = Topic.joins(:replies).order(:id)
       .pluck("topics.title", "replies_topics.title")
     assert_equal expected, actual
   end

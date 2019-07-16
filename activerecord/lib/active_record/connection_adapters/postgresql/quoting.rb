@@ -93,7 +93,7 @@ module ActiveRecord
               # "table_name"."column_name"::type_name | function(one or no argument)::type_name
               ((?:\w+\.|"\w+"\.)?(?:\w+|"\w+")(?:::\w+)?) | \w+\((?:|\g<2>)\)(?:::\w+)?
             )
-            (?:\s+AS\s+(?:\w+|"\w+"))?
+            (?:(?:\s+AS)?\s+(?:\w+|"\w+"))?
           )
           (?:\s*,\s*\g<1>)*
           \z

@@ -162,7 +162,7 @@ module ActiveRecord
             # table_name.column_name | function(one or no argument)
             ((?:\w+\.)?\w+) | \w+\((?:|\g<2>)\)
           )
-          (?:\s+AS\s+\w+)?
+          (?:(?:\s+AS)?\s+\w+)?
         )
         (?:\s*,\s*\g<1>)*
         \z
