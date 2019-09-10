@@ -47,8 +47,8 @@ module ActiveRecord
     # The exceptions AdapterNotSpecified, AdapterNotFound and +ArgumentError+
     # may be returned on an error.
     def establish_connection(config_or_env = nil)
-      config_hash = resolve_config_for_connection(config_or_env)
-      connection_handler.establish_connection(config_hash)
+      database_config = resolve_config_for_connection(config_or_env)
+      connection_handler.establish_connection(database_config)
     end
 
     # Connects a model to the databases specified. The +database+ keyword
@@ -184,10 +184,7 @@ module ActiveRecord
       self.connection_specification_name = pool_name
 
       resolver = ConnectionAdapters::ConnectionSpecification::Resolver.new(Base.configurations)
-      config_hash = resolver.resolve(config_or_env, pool_name).symbolize_keys
-      config_hash[:name] = pool_name
-
-      config_hash
+      resolver.resolve(config_or_env, pool_name)
     end
 
     # Clears the query cache for all connections associated with the current thread.

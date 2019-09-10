@@ -32,9 +32,9 @@ module ActiveRecord
       attr_reader :url, :config
 
       def initialize(env_name, spec_name, url, config = {})
-        super(env_name, spec_name)
         @config = build_config(config, url)
         @url = url
+        super(env_name, spec_name)
       end
 
       def url_config? # :nodoc:

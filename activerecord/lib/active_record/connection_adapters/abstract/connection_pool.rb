@@ -1062,26 +1062,24 @@ module ActiveRecord
       end
       alias :connection_pools :connection_pool_list
 
-      def establish_connection(config)
-        resolver = ConnectionSpecification::Resolver.new(Base.configurations)
-        spec = resolver.spec(config)
+      def establish_connection(database_config)
+        # resolver = ConnectionSpecification::Resolver.new(Base.configurations)
+        # spec = resolver.spec(config)
 
-        remove_connection(spec.name)
+        # remove_connection(spec.name)
 
         message_bus = ActiveSupport::Notifications.instrumenter
         payload = {
           connection_id: object_id
         }
-        if spec
-          payload[:spec_name] = spec.name
-          payload[:config] = spec.config
-        end
+        payload[:spec_name] = database_config.spec_name
+        payload[:config] = database_config
 
         message_bus.instrument("!connection.active_record", payload) do
-          owner_to_pool[spec.name] = ConnectionAdapters::ConnectionPool.new(spec)
+          owner_to_pool[database_config.spec_name] = database_config.pool
         end
 
-        owner_to_pool[spec.name]
+        owner_to_pool[database_config.spec_name]
       end
 
       # Returns true if there are any active connections among the connection

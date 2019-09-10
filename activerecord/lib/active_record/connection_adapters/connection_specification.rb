@@ -244,9 +244,7 @@ module ActiveRecord
           def resolve_symbol_connection(env_name, pool_name)
             db_config = configurations.find_db_config(env_name)
 
-            if db_config
-              resolve_connection(db_config.config).merge("name" => pool_name.to_s)
-            else
+            unless db_config
               raise AdapterNotSpecified, <<~MSG
                 The `#{env_name}` database is not configured for the `#{ActiveRecord::ConnectionHandling::DEFAULT_ENV.call}` environment.
 
@@ -255,6 +253,8 @@ module ActiveRecord
                 #{build_configuration_sentence}
               MSG
             end
+
+            db_config
           end
 
           def build_configuration_sentence # :nodoc:

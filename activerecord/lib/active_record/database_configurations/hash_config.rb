@@ -28,8 +28,8 @@ module ActiveRecord
       attr_reader :config
 
       def initialize(env_name, spec_name, config)
-        super(env_name, spec_name)
         @config = config
+        super(env_name, spec_name)
       end
 
       # Determines whether a database configuration is for a replica / readonly
