@@ -4,6 +4,11 @@ require "active_record/database_configurations/database_config"
 require "active_record/database_configurations/hash_config"
 require "active_record/database_configurations/url_config"
 require "active_record/database_configurations/connection_url_resolver"
+require "active_record/database_configurations/topology"
+require "active_record/database_configurations/group"
+require "active_record/database_configurations/role"
+require "active_record/database_configurations/sharded_group"
+require "active_record/database_configurations/shard"
 
 module ActiveRecord
   # ActiveRecord::DatabaseConfigurations returns an array of DatabaseConfig
@@ -11,6 +16,7 @@ module ActiveRecord
   # application's database configuration hash or URL string.
   class DatabaseConfigurations
     class InvalidConfigurationError < StandardError; end
+    class InvalidSelectionError < StandardError; end
 
     attr_reader :configurations
     delegate :any?, to: :configurations
