@@ -12,16 +12,26 @@ module ActiveRecord
 
       attr_accessor :schema_cache
 
+      INSTANCES = ObjectSpace::WeakMap.new
+      private_constant :INSTANCES
+
+      class << self
+        def discard_pools!
+          INSTANCES.each_key(&:discard_pool!)
+        end
+      end
+
       def initialize(env_name, spec_name)
         super()
         @env_name = env_name
         @spec_name = spec_name
         @pool = nil
-        @pool_pid = Process.pid
+
+        INSTANCES[self] = self
       end
 
       def disconnect!
-        discard_unowned_pool!
+        ActiveSupport::ForkTracker.check!
 
         return unless @pool
 
@@ -36,20 +46,19 @@ module ActiveRecord
       end
 
       def connection_pool
-        discard_unowned_pool!
+        ActiveSupport::ForkTracker.check!
 
         @pool || synchronize { @pool ||= ConnectionAdapters::ConnectionPool.new(self) }
       end
 
-      def discard_unowned_pool!
-        return if @pool_pid == Process.pid
+      def discard_pool!
+        return unless @pool
 
         synchronize do
-          return if @pool_pid == Process.pid
+          return unless @pool
 
-          @pool&.discard!
+          @pool.discard!
           @pool = nil
-          @pool_pid = Process.pid
         end
       end
 
@@ -99,3 +108,5 @@ module ActiveRecord
     end
   end
 end
+
+ActiveSupport::ForkTracker.after_fork { ActiveRecord::DatabaseConfigurations::DatabaseConfig.discard_pools! }
