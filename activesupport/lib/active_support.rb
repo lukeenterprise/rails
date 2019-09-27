@@ -38,6 +38,7 @@ module ActiveSupport
   autoload :CurrentAttributes
   autoload :Dependencies
   autoload :DescendantsTracker
+  autoload :ForkTracker
   autoload :ExecutionWrapper
   autoload :Executor
   autoload :FileUpdateChecker
