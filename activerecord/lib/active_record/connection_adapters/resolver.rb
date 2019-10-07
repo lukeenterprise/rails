@@ -11,20 +11,8 @@ module ActiveRecord
         @configurations = configurations
       end
 
-      # Returns an instance of ConnectionSpecification for a given adapter.
-      # Accepts a hash one layer deep that contains all connection information.
-      #
-      # == Example
-      #
-      #   config = { "production" => { "host" => "localhost", "database" => "foo", "adapter" => "sqlite3" } }
-      #   spec = Resolver.new(config).spec(:production)
-      #   spec.db_config.configuration_hash
-      #   # => { host: "localhost", database: "foo", adapter: "sqlite3" }
-      #
-      def spec(config)
-        pool_name = config if config.is_a?(Symbol)
-
-        db_config = resolve(config, pool_name)
+      def lookup(config)
+        db_config = resolve(config)
 
         raise(AdapterNotSpecified, "database configuration does not specify adapter") unless db_config.adapter
 
@@ -53,6 +41,21 @@ module ActiveRecord
           raise AdapterNotFound, "database configuration specifies nonexistent #{db_config.adapter} adapter"
         end
 
+        db_config
+      end
+
+      # Returns an instance of ConnectionSpecification for a given adapter.
+      # Accepts a hash one layer deep that contains all connection information.
+      #
+      # == Example
+      #
+      #   config = { "production" => { "host" => "localhost", "database" => "foo", "adapter" => "sqlite3" } }
+      #   spec = Resolver.new(config).spec(:production)
+      #   spec.db_config.configuration_hash
+      #   # => { host: "localhost", database: "foo", adapter: "sqlite3" }
+      #
+      def spec(config)
+        db_config = lookup(config)
         ConnectionSpecification.new(db_config.configuration_hash.delete(:name) || "primary", db_config)
       end
 
@@ -76,12 +79,12 @@ module ActiveRecord
       #   Resolver.new({}).resolve("postgresql://localhost/foo")
       #   # => DatabaseConfigurations::UrlConfig.new(config: {"adapter" => "postgresql", "host" => "localhost", "database" => "foo"})
       #
-      def resolve(config_or_env, pool_name = nil)
+      def resolve(config_or_env)
         env = ActiveRecord::ConnectionHandling::DEFAULT_ENV.call.to_s
 
         case config_or_env
         when Symbol
-          resolve_symbol_connection(config_or_env, pool_name)
+          resolve_symbol_connection(config_or_env)
         when String
           DatabaseConfigurations::UrlConfig.new(env, "primary", config_or_env)
         when Hash
@@ -122,13 +125,13 @@ module ActiveRecord
         #         @env_name="production", @spec_name="primary", @config={database: "my_db"}>
         #       ]>
         #
-        #   Resolver.new(configurations).resolve_symbol_connection(:production, "primary")
+        #   Resolver.new(configurations).resolve_symbol_connection(:production)
         #   # => DatabaseConfigurations::HashConfig(config: database: "my_db", env_name: "production", spec_name: "primary")
-        def resolve_symbol_connection(env_name, pool_name)
+        def resolve_symbol_connection(env_name)
           db_config = configurations.find_db_config(env_name)
 
           if db_config
-            config = db_config.configuration_hash.merge(name: pool_name.to_s)
+            config = db_config.configuration_hash
             DatabaseConfigurations::HashConfig.new(db_config.env_name, db_config.spec_name, config)
           else
             raise AdapterNotSpecified, <<~MSG

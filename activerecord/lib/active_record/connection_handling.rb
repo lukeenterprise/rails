@@ -47,6 +47,8 @@ module ActiveRecord
     # The exceptions AdapterNotSpecified, AdapterNotFound and +ArgumentError+
     # may be returned on an error.
     def establish_connection(config_or_env = nil)
+      @connection_handler ||= ConnectionAdapters::ConnectionHandler.new
+
       config_hash = resolve_config_for_connection(config_or_env)
       connection_handler.establish_connection(config_hash)
     end
@@ -66,13 +68,13 @@ module ActiveRecord
     #
     # Returns an array of established connections.
     def connects_to(database: {})
+      @connection_handler ||= ConnectionAdapters::ConnectionHandler.new
+
       connections = []
 
       database.each do |role, database_key|
         config_hash = resolve_config_for_connection(database_key)
-        handler = lookup_connection_handler(role.to_sym)
-
-        connections << handler.establish_connection(config_hash)
+        connections << connection_handler.establish_connection(config_hash, role: role)
       end
 
       connections
@@ -125,18 +127,15 @@ module ActiveRecord
         end
 
         config_hash = resolve_config_for_connection(database)
-        handler = lookup_connection_handler(role)
-
-        handler.establish_connection(config_hash)
-
-        with_handler(role, &blk)
+        connection_handler.establish_connection(config_hash, role: role)
+        with_role(role, &blk)
       elsif role
         if role == writing_role
-          with_handler(role.to_sym) do
+          with_role(role.to_sym) do
             connection_handler.while_preventing_writes(prevent_writes, &blk)
           end
         else
-          with_handler(role.to_sym, &blk)
+          with_role(role.to_sym, &blk)
         end
       else
         raise ArgumentError, "must provide a `database` or a `role`."
@@ -163,7 +162,11 @@ module ActiveRecord
     #     ActiveRecord::Base.current_role #=> :reading
     #   end
     def current_role
-      connection_handlers.key(connection_handler)
+      if self == Base
+        Thread.current.thread_variable_get(:ar_current_role) || writing_role
+      else
+        connection_handler.current_role || Base.current_role
+      end
     end
 
     def lookup_connection_handler(handler_key) # :nodoc:
@@ -171,21 +174,12 @@ module ActiveRecord
       connection_handlers[handler_key] ||= ActiveRecord::ConnectionAdapters::ConnectionHandler.new
     end
 
-    def with_handler(handler_key, &blk) # :nodoc:
-      handler = lookup_connection_handler(handler_key)
-      swap_connection_handler(handler, &blk)
-    end
-
     def resolve_config_for_connection(config_or_env) # :nodoc:
       raise "Anonymous class is not allowed." unless name
 
       config_or_env ||= DEFAULT_ENV.call.to_sym
-      pool_name = primary_class? ? "primary" : name
-      self.connection_specification_name = pool_name
-
       resolver = ConnectionAdapters::Resolver.new(Base.configurations)
-      config_hash = resolver.resolve(config_or_env, pool_name).configuration_hash
-      config_hash[:name] = pool_name
+      config_hash = resolver.resolve(config_or_env).configuration_hash
 
       config_hash
     end
@@ -206,14 +200,13 @@ module ActiveRecord
       retrieve_connection
     end
 
-    attr_writer :connection_specification_name
+    attr_writer :connection_handler
 
-    # Return the specification name from the current class or its parent.
-    def connection_specification_name
-      if !defined?(@connection_specification_name) || @connection_specification_name.nil?
-        return self == Base ? "primary" : superclass.connection_specification_name
+    def connection_handler
+      if !defined?(@connection_handler) || @connection_handler.nil?
+        return self == Base ? @connection_handler ||= default_connection_handler : superclass.connection_handler
       end
-      @connection_specification_name
+      @connection_handler
     end
 
     def primary_class? # :nodoc:
@@ -231,16 +224,16 @@ module ActiveRecord
     end
 
     def connection_pool
-      connection_handler.retrieve_connection_pool(connection_specification_name) || raise(ConnectionNotEstablished)
+      connection_handler.retrieve_connection_pool(current_role) || raise(ConnectionNotEstablished)
     end
 
     def retrieve_connection
-      connection_handler.retrieve_connection(connection_specification_name)
+      connection_handler.retrieve_connection(current_role)
     end
 
     # Returns +true+ if Active Record is connected.
     def connected?
-      connection_handler.connected?(connection_specification_name)
+      connection_handler.connected?(current_role)
     end
 
     def remove_connection(name = nil)
@@ -263,11 +256,19 @@ module ActiveRecord
       :clear_all_connections!, :flush_idle_connections!, to: :connection_handler
 
     private
-      def swap_connection_handler(handler, &blk) # :nodoc:
-        old_handler, ActiveRecord::Base.connection_handler = ActiveRecord::Base.connection_handler, handler
-        yield
-      ensure
-        ActiveRecord::Base.connection_handler = old_handler
+
+      def with_role(role, &block)
+        if self == Base
+          begin
+            previous_role = Thread.current_role.thread_variable_get(:ar_current_role)
+            Thread.current.thread_variable_set(:ar_current_role, role)
+            yield
+          ensure
+            Thread.current.thread_variable_set(:ar_current_role, previous_role)
+          end
+        else
+          connection_handler.with_role(role, &block)
+        end
       end
   end
 end
