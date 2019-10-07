@@ -176,7 +176,9 @@ module ActiveRecord
     def enlist_fixture_connections
       setup_shared_connection_pool
 
-      ActiveRecord::Base.connection_handler.connection_pool_list.map(&:connection)
+      ActiveRecord::Base.connection_handlers.each_with_object([]) do |(db, handler), acc|
+        acc << handler.retrieve_connection(ActiveRecord::Base.writing_role)
+      end
     end
 
     private
@@ -187,13 +189,11 @@ module ActiveRecord
       # need to share a connection pool so that the reading connection
       # can see data in the open transaction on the writing connection.
       def setup_shared_connection_pool
-        writing_handler = ActiveRecord::Base.connection_handler
-
         ActiveRecord::Base.connection_handlers.values.each do |handler|
-          if handler != writing_handler
-            handler.connection_pool_names.each do |name|
-              handler.send(:owner_to_role)[name] = writing_handler.send(:owner_to_role)[name]
-            end
+          role_to_config = handler.instance_variable_get(:@role_to_config)
+          role_to_config.each do |role, _role_object|
+            next if role == ActiveRecord::Base.writing_role
+            role_to_config[role] = role_to_config[ActiveRecord::Base.writing_role]
           end
         end
       end
