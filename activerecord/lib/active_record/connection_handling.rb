@@ -236,16 +236,14 @@ module ActiveRecord
       connection_handler.connected?(current_role)
     end
 
-    def remove_connection(name = nil)
-      name ||= @connection_specification_name if defined?(@connection_specification_name)
-      # if removing a connection that has a pool, we reset the
-      # connection_specification_name so it will use the parent
-      # pool.
-      if connection_handler.retrieve_connection_pool(name)
-        self.connection_specification_name = nil
+    def remove_connection(role = nil)
+      if defined?(@connection_handler) && @connection_handler
+        if role
+          connection_handler.remove_connection(role)
+        else
+          @connection_handler = nil
+        end
       end
-
-      connection_handler.remove_connection(name)
     end
 
     def clear_cache! # :nodoc:
