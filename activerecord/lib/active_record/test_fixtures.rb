@@ -187,13 +187,11 @@ module ActiveRecord
       # need to share a connection pool so that the reading connection
       # can see data in the open transaction on the writing connection.
       def setup_shared_connection_pool
-        writing_handler = ActiveRecord::Base.connection_handler
-
         ActiveRecord::Base.connection_handlers.values.each do |handler|
-          if handler != writing_handler
-            handler.connection_pool_names.each do |name|
-              handler.send(:owner_to_config)[name] = writing_handler.send(:owner_to_config)[name]
-            end
+          role_to_config = handler.instance_variable_get(:@role_to_config)
+          role_to_config.each do |role, db_config|
+            next if role == ActiveRecord::Base.writing_role
+            role_to_config[role] = role_to_config[ActiveRecord::Base.writing_role]
           end
         end
       end
