@@ -9,7 +9,7 @@ module ActiveRecord
         def resolve(spec, config = {})
           configs = ActiveRecord::DatabaseConfigurations.new(config)
           resolver = ConnectionAdapters::Resolver.new(configs)
-          resolver.resolve(spec, spec).configuration_hash
+          resolver.resolve(spec).configuration_hash
         end
 
         def spec(spec, config = {})

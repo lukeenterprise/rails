@@ -361,18 +361,17 @@ class QueryCacheTest < ActiveRecord::TestCase
   def test_cache_is_available_when_using_a_not_connected_connection
     skip "In-Memory DB can't test for using a not connected connection" if in_memory_db?
     with_temporary_connection_pool do
-      spec_name = Task.connection_specification_name
-      conf = ActiveRecord::Base.configurations["arunit"].merge("name" => "test2")
-      ActiveRecord::Base.connection_handler.establish_connection(conf)
-      Task.connection_specification_name = "test2"
-      assert_not_predicate Task, :connected?
+      conf = ActiveRecord::Base.configurations["arunit"]
+      ActiveRecord::Base.connection_handler.establish_connection(conf, role: :testing_query_cache)
+      ActiveRecord::Base.connected_to(role: :testing_query_cache) do
+        assert_not_predicate Task, :connected?
 
-      Task.cache do
-        assert_queries(1) { Task.find(1); Task.find(1) }
-      ensure
-        ActiveRecord::Base.connection_handler.remove_connection(Task.connection_specification_name)
-        Task.connection_specification_name = spec_name
+        Task.cache do
+          assert_queries(1) { Task.find(1); Task.find(1) }
+        end
       end
+    ensure
+      ActiveRecord::Base.connection_handler.remove_connection(:testing_query_cache)
     end
   end
 
@@ -555,7 +554,8 @@ class QueryCacheTest < ActiveRecord::TestCase
 
   private
     def with_temporary_connection_pool
-      db_config = ActiveRecord::Base.connection_handler.send(:owner_to_config).fetch("primary")
+      configs = ActiveRecord::Base.connection_handler.instance_variable_get(:@role_to_config)
+      db_config = configs.fetch(ActiveRecord::Base.writing_role)
       new_pool = ActiveRecord::ConnectionAdapters::ConnectionPool.new(db_config)
 
       db_config.stub(:connection_pool, new_pool) do

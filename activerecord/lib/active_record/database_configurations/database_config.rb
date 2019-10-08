@@ -40,6 +40,7 @@ module ActiveRecord
 
           @pool.automatic_reconnect = false
           @pool.disconnect!
+          @pool = nil
         end
 
         nil

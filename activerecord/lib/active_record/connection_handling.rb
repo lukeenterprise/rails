@@ -256,7 +256,7 @@ module ActiveRecord
       def with_role(role, &block)
         if self == Base
           begin
-            previous_role = Thread.current_role.thread_variable_get(:ar_current_role)
+            previous_role = Thread.current.thread_variable_get(:ar_current_role)
             Thread.current.thread_variable_set(:ar_current_role, role)
             yield
           ensure

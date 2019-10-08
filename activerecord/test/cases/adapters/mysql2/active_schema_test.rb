@@ -23,6 +23,11 @@ class Mysql2ActiveSchemaTest < ActiveRecord::Mysql2TestCase
   end
 
   teardown do
+    ActiveRecord::Base.connection.singleton_class.class_eval do
+      remove_method :execute
+      alias_method :execute, :execute_without_stub
+    end
+
     reset_connection
   end
 

@@ -590,13 +590,13 @@ if ActiveRecord::Base.connection.supports_advisory_locks?
 
       run_without_connection do |orig_connection|
         ActiveRecord::Base.establish_connection(
-          orig_connection.merge(advisory_locks: false)
+          orig_connection.configuration_hash.merge(advisory_locks: false)
         )
 
         assert_not ActiveRecord::Base.connection.advisory_locks_enabled?
 
         ActiveRecord::Base.establish_connection(
-          orig_connection.merge(advisory_locks: true)
+          orig_connection.configuration_hash.merge(advisory_locks: true)
         )
 
         assert ActiveRecord::Base.connection.advisory_locks_enabled?

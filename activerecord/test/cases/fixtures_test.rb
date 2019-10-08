@@ -138,7 +138,7 @@ class FixturesTest < ActiveRecord::TestCase
     def test_bulk_insert_with_multi_statements_enabled
       run_without_connection do |orig_connection|
         ActiveRecord::Base.establish_connection(
-          orig_connection.merge(flags: %w[MULTI_STATEMENTS])
+          orig_connection.configuration_hash.merge(flags: %w[MULTI_STATEMENTS])
         )
 
         fixtures = {
@@ -175,7 +175,7 @@ class FixturesTest < ActiveRecord::TestCase
     def test_bulk_insert_with_multi_statements_disabled
       run_without_connection do |orig_connection|
         ActiveRecord::Base.establish_connection(
-          orig_connection.merge(flags: [])
+          orig_connection.configuration_hash.merge(flags: [])
         )
 
         fixtures = {
@@ -1414,7 +1414,7 @@ class MultipleDatabaseFixturesTest < ActiveRecord::TestCase
 
   private
     def with_temporary_connection_pool
-      db_config = ActiveRecord::Base.connection_handler.send(:owner_to_config).fetch("primary")
+      db_config = ActiveRecord::Base.connection_handler.instance_variable_get(:@owner_to_role).fetch(ActiveRecord::Base.writing_role)
       new_pool = ActiveRecord::ConnectionAdapters::ConnectionPool.new(db_config)
 
       db_config.stub(:connection_pool, new_pool) do

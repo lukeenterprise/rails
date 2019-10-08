@@ -10,7 +10,6 @@ module ConnectionHelper
 
   # Used to drop all cache query plans in tests.
   def reset_connection
-    original_connection = ActiveRecord::Base.remove_connection
-    ActiveRecord::Base.establish_connection(original_connection)
+    ActiveRecord::Base.connection.reconnect!
   end
 end
