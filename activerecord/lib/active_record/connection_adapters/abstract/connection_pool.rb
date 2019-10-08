@@ -1050,8 +1050,11 @@ module ActiveRecord
       alias :connection_pools :connection_pool_list
 
       def establish_connection(config, role: ActiveRecord::Base.writing_role)
-        resolver = Resolver.new(Base.configurations)
-        db_config = resolver.lookup(config)
+        db_config = if config.is_a?(DatabaseConfigurations::DatabaseConfig)
+          config
+        else
+          Resolver.new(Base.configurations).lookup(config)
+        end
 
         remove_connection(role)
 
@@ -1130,7 +1133,7 @@ module ActiveRecord
       def remove_connection(role)
         if db_config = role_to_config.delete(role)
           db_config.disconnect!
-          db_config.configuration_hash
+          db_config
         end
       end
 

@@ -49,8 +49,8 @@ module ActiveRecord
     def establish_connection(config_or_env = nil)
       @connection_handler ||= ConnectionAdapters::ConnectionHandler.new
 
-      config_hash = resolve_config_for_connection(config_or_env)
-      connection_handler.establish_connection(config_hash)
+      config = resolve_config_for_connection(config_or_env)
+      connection_handler.establish_connection(config)
     end
 
     # Connects a model to the databases specified. The +database+ keyword
@@ -177,6 +177,8 @@ module ActiveRecord
     def resolve_config_for_connection(config_or_env) # :nodoc:
       raise "Anonymous class is not allowed." unless name
 
+      return config_or_env if config_or_env.is_a?(DatabaseConfigurations::DatabaseConfig)
+
       config_or_env ||= DEFAULT_ENV.call.to_sym
       resolver = ConnectionAdapters::Resolver.new(Base.configurations)
       config_hash = resolver.resolve(config_or_env).configuration_hash
@@ -236,13 +238,9 @@ module ActiveRecord
       connection_handler.connected?(current_role)
     end
 
-    def remove_connection(role = nil)
+    def remove_connection(role = current_role)
       if defined?(@connection_handler) && @connection_handler
-        if role
-          connection_handler.remove_connection(role)
-        else
-          @connection_handler = nil
-        end
+        connection_handler.remove_connection(role)
       end
     end
 
