@@ -1387,31 +1387,6 @@ class BasicsTest < ActiveRecord::TestCase
     assert_equal klass.default_connection_handler, orig_handler
   end
 
-  test "changing a connection handler in a main thread does not poison the other threads" do
-    klass = Class.new(ActiveRecord::Base)
-    orig_handler = klass.connection_handler
-    new_handler = ActiveRecord::ConnectionAdapters::ConnectionHandler.new
-    after_handler = nil
-    latch1 = Concurrent::CountDownLatch.new
-    latch2 = Concurrent::CountDownLatch.new
-
-    t = Thread.new do
-      klass.connection_handler = new_handler
-      latch1.count_down
-      latch2.wait
-      after_handler = klass.connection_handler
-    end
-
-    latch1.wait
-
-    klass.connection_handler = orig_handler
-    latch2.count_down
-    t.join
-
-    assert_equal after_handler, new_handler
-    assert_equal orig_handler, klass.connection_handler
-  end
-
   # Note: This is a performance optimization for Array#uniq and Hash#[] with
   # AR::Base objects. If the future has made this irrelevant, feel free to
   # delete this.

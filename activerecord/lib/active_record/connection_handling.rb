@@ -201,8 +201,6 @@ module ActiveRecord
       retrieve_connection
     end
 
-    attr_writer :connection_handler
-
     def connection_handler
       if !defined?(@connection_handler) || @connection_handler.nil?
         return self == Base ? @connection_handler ||= default_connection_handler : superclass.connection_handler
