@@ -56,24 +56,19 @@ class QueryCacheTest < ActiveRecord::TestCase
   end
 
   def test_query_cache_is_applied_to_connections_in_all_handlers
-    ActiveRecord::Base.connection_handlers = {
-      writing: ActiveRecord::Base.default_connection_handler,
-      reading: ActiveRecord::ConnectionAdapters::ConnectionHandler.new
-    }
+    with_temporary_connection_handler do
+      ActiveRecord::Base.connection_handler.establish_connection(ActiveRecord::Base.configurations["arunit"], role: :reading)
 
-    ActiveRecord::Base.connected_to(role: :reading) do
-      ActiveRecord::Base.establish_connection(ActiveRecord::Base.configurations["arunit"])
+      mw = middleware { |env|
+        ro_conn = ActiveRecord::Base.connected_to(role: :reading) do
+          ActiveRecord::Base.connection
+        end
+        assert_predicate ActiveRecord::Base.connection, :query_cache_enabled
+        assert_predicate ro_conn, :query_cache_enabled
+      }
+
+      mw.call({})
     end
-
-    mw = middleware { |env|
-      ro_conn = ActiveRecord::Base.connection_handlers[:reading].connection_pool_list.first.connection
-      assert_predicate ActiveRecord::Base.connection, :query_cache_enabled
-      assert_predicate ro_conn, :query_cache_enabled
-    }
-
-    mw.call({})
-  ensure
-    ActiveRecord::Base.connection_handlers = { writing: ActiveRecord::Base.default_connection_handler }
   end
 
   def test_query_cache_across_threads
@@ -360,18 +355,18 @@ class QueryCacheTest < ActiveRecord::TestCase
 
   def test_cache_is_available_when_using_a_not_connected_connection
     skip "In-Memory DB can't test for using a not connected connection" if in_memory_db?
-    with_temporary_connection_pool do
-      conf = ActiveRecord::Base.configurations["arunit"]
-      ActiveRecord::Base.connection_handler.establish_connection(conf, role: :testing_query_cache)
-      ActiveRecord::Base.connected_to(role: :testing_query_cache) do
-        assert_not_predicate Task, :connected?
+    with_temporary_connection_handler do
+      with_temporary_connection_pool do
+        conf = ActiveRecord::Base.configurations["arunit"]
+        ActiveRecord::Base.connection_handler.establish_connection(conf, role: :testing_query_cache)
+        ActiveRecord::Base.connected_to(role: :testing_query_cache) do
+          assert_not_predicate Task, :connected?
 
-        Task.cache do
-          assert_queries(1) { Task.find(1); Task.find(1) }
+          Task.cache do
+            assert_queries(1) { Task.find(1); Task.find(1) }
+          end
         end
       end
-    ensure
-      ActiveRecord::Base.connection_handler.remove_connection(:testing_query_cache)
     end
   end
 
@@ -499,40 +494,33 @@ class QueryCacheTest < ActiveRecord::TestCase
 
   def test_clear_query_cache_is_called_on_all_connections
     skip "with in memory db, reading role won't be able to see database on writing role" if in_memory_db?
-    with_temporary_connection_pool do
-      ActiveRecord::Base.connection_handlers = {
-        writing: ActiveRecord::Base.default_connection_handler,
-        reading: ActiveRecord::ConnectionAdapters::ConnectionHandler.new
-      }
+    with_temporary_connection_handler do
+      with_temporary_connection_pool do
+        ActiveRecord::Base.connection_handler.establish_connection(ActiveRecord::Base.configurations["arunit"], role: :reading)
 
-      ActiveRecord::Base.connected_to(role: :reading) do
-        ActiveRecord::Base.establish_connection(ActiveRecord::Base.configurations["arunit"])
-      end
+        mw = middleware { |env|
+          ActiveRecord::Base.connected_to(role: :reading) do
+            @topic = Topic.first
+          end
 
-      mw = middleware { |env|
-        ActiveRecord::Base.connected_to(role: :reading) do
-          @topic = Topic.first
-        end
+          assert @topic
 
-        assert @topic
+          ActiveRecord::Base.connected_to(role: :writing) do
+            @topic.title = "It doesn't have to be crazy at work"
+            @topic.save!
+          end
 
-        ActiveRecord::Base.connected_to(role: :writing) do
-          @topic.title = "It doesn't have to be crazy at work"
-          @topic.save!
-        end
-
-        assert_equal "It doesn't have to be crazy at work", @topic.title
-
-        ActiveRecord::Base.connected_to(role: :reading) do
-          @topic = Topic.first
           assert_equal "It doesn't have to be crazy at work", @topic.title
-        end
-      }
 
-      mw.call({})
+          ActiveRecord::Base.connected_to(role: :reading) do
+            @topic = Topic.first
+            assert_equal "It doesn't have to be crazy at work", @topic.title
+          end
+        }
+
+        mw.call({})
+      end
     end
-  ensure
-    ActiveRecord::Base.connection_handlers = { writing: ActiveRecord::Base.default_connection_handler }
   end
 
   test "query cache is enabled in threads with shared connection" do
@@ -561,6 +549,14 @@ class QueryCacheTest < ActiveRecord::TestCase
       db_config.stub(:connection_pool, new_pool) do
         yield
       end
+    end
+
+    def with_temporary_connection_handler
+      old_handler = ActiveRecord::Base.default_connection_handler
+      ActiveRecord::Base.default_connection_handler = ActiveRecord::Base.default_connection_handler.dup
+      yield
+    ensure
+      ActiveRecord::Base.default_connection_handler = old_handler
     end
 
     def middleware(&app)
