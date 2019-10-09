@@ -1356,22 +1356,6 @@ class BasicsTest < ActiveRecord::TestCase
     assert_equal ["foo"], klass.all.merge!(select: "foo").select_values
   end
 
-  test "connection_handler can be overridden" do
-    klass = Class.new(ActiveRecord::Base)
-    orig_handler = klass.connection_handler
-    new_handler = ActiveRecord::ConnectionAdapters::ConnectionHandler.new
-    thread_connection_handler = nil
-
-    t = Thread.new do
-      klass.connection_handler = new_handler
-      thread_connection_handler = klass.connection_handler
-    end
-    t.join
-
-    assert_equal klass.connection_handler, orig_handler
-    assert_equal thread_connection_handler, new_handler
-  end
-
   test "new threads get default the default connection handler" do
     klass = Class.new(ActiveRecord::Base)
     orig_handler = klass.connection_handler
