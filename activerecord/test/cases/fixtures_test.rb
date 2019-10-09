@@ -1390,31 +1390,30 @@ end
 
 class MultipleDatabaseFixturesTest < ActiveRecord::TestCase
   test "enlist_fixture_connections ensures multiple databases share a connection pool" do
-    old_handlers = ActiveRecord::Base.connection_handlers
-    ActiveRecord::Base.connection_handlers = {}
-
     with_temporary_connection_pool do
       ActiveRecord::Base.connects_to database: { writing: :arunit, reading: :arunit2 }
 
       rw_conn = ActiveRecord::Base.connection
-      ro_conn = ActiveRecord::Base.connection_handlers[:reading].connection_pool_list.first.connection
+      ro_conn = ActiveRecord::Base.connected_to(role: :reading) do
+        ActiveRecord::Base.connection
+      end
 
       assert_not_equal rw_conn, ro_conn
 
       enlist_fixture_connections
 
       rw_conn = ActiveRecord::Base.connection
-      ro_conn = ActiveRecord::Base.connection_handlers[:reading].connection_pool_list.first.connection
+      ro_conn = ActiveRecord::Base.connected_to(role: :reading) do
+        ActiveRecord::Base.connection
+      end
 
       assert_equal rw_conn, ro_conn
     end
-  ensure
-    ActiveRecord::Base.connection_handlers = old_handlers
   end
 
   private
     def with_temporary_connection_pool
-      db_config = ActiveRecord::Base.connection_handler.instance_variable_get(:@owner_to_role).fetch(ActiveRecord::Base.writing_role)
+      db_config = ActiveRecord::Base.connection_handler.instance_variable_get(:@role_to_config).fetch(ActiveRecord::Base.writing_role)
       new_pool = ActiveRecord::ConnectionAdapters::ConnectionPool.new(db_config)
 
       db_config.stub(:connection_pool, new_pool) do
