@@ -127,7 +127,7 @@ module ActiveRecord
         end
 
         config_hash = resolve_config_for_connection(database)
-        connection_handler.establish_connection(config_hash, role: role)
+        connection_handler.establish_connection(config_hash, role: role || writing_role)
         with_role(role, &blk)
       elsif role
         if role == writing_role
@@ -170,7 +170,7 @@ module ActiveRecord
     end
 
     def assign_connection_handler # :nodoc:
-      @connection_handler ||= connection_handlers[name] ||= ActiveRecord::ConnectionAdapters::ConnectionHandler.new
+      connection_handlers[name] ||= ActiveRecord::ConnectionAdapters::ConnectionHandler.new
     end
 
     def resolve_config_for_connection(config_or_env) # :nodoc:
@@ -202,10 +202,10 @@ module ActiveRecord
     end
 
     def connection_handler
-      if !defined?(@connection_handler) || @connection_handler.nil?
-        return self == Base ? @connection_handler ||= default_connection_handler : superclass.connection_handler
-      end
-      @connection_handler
+      key = name
+      handler = connection_handlers[key]
+      return handler if handler
+      self == Base ? connection_handlers[key] ||= default_connection_handler : superclass.connection_handler
     end
 
     def primary_class? # :nodoc:
