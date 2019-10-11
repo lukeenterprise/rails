@@ -762,6 +762,8 @@ class MigrationTest < ActiveRecord::TestCase
 end
 
 class ReservedWordsMigrationTest < ActiveRecord::TestCase
+  self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
   def test_drop_index_from_table_named_values
     connection = Person.connection
     connection.create_table :values, force: true do |t|
@@ -778,6 +780,8 @@ class ReservedWordsMigrationTest < ActiveRecord::TestCase
 end
 
 class ExplicitlyNamedIndexMigrationTest < ActiveRecord::TestCase
+  self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
   def test_drop_index_by_name
     connection = Person.connection
     connection.create_table :values, force: true do |t|
@@ -795,6 +799,8 @@ end
 
 if ActiveRecord::Base.connection.supports_bulk_alter?
   class BulkAlterTableMigrationsTest < ActiveRecord::TestCase
+    self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
     def setup
       @connection = Person.connection
       @connection.create_table(:delete_me, force: true) { |t| }

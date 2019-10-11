@@ -5,6 +5,8 @@ require "cases/helper"
 module ActiveRecord
   class Migration
     class IndexTest < ActiveRecord::TestCase
+      self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
       attr_reader :connection, :table_name
 
       def setup

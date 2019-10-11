@@ -4,6 +4,8 @@ require "cases/helper"
 require "support/connection_helper"
 
 class Mysql2ActiveSchemaTest < ActiveRecord::Mysql2TestCase
+  self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
   include ConnectionHelper
 
   def setup

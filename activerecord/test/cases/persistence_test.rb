@@ -21,6 +21,8 @@ require "models/admin"
 require "models/admin/user"
 
 class PersistenceTest < ActiveRecord::TestCase
+  self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
   fixtures :topics, :companies, :developers, :accounts, :minimalistics, :authors, :author_addresses, :posts, :minivans
 
   def test_update_many

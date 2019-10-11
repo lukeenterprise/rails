@@ -305,12 +305,14 @@ module ActiveRecord
       assert_not revert.connection.table_exists?("horses")
     end
 
-    def test_migrate_revert_transaction
-      migration = InvertibleTransactionMigration.new
-      migration.migrate :up
-      assert migration.connection.table_exists?("horses")
-      migration.migrate :down
-      assert_not migration.connection.table_exists?("horses")
+    if ActiveRecord::Base.connection.supports_ddl_transactions?
+      def test_migrate_revert_transaction
+        migration = InvertibleTransactionMigration.new
+        migration.migrate :up
+        assert migration.connection.table_exists?("horses")
+        migration.migrate :down
+        assert_not migration.connection.table_exists?("horses")
+      end
     end
 
     def test_migrate_revert_change_column_default

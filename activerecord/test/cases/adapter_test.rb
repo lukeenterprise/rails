@@ -9,6 +9,8 @@ require "models/event"
 
 module ActiveRecord
   class AdapterTest < ActiveRecord::TestCase
+    self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
     def setup
       @connection = ActiveRecord::Base.connection
       @connection.materialize_transactions

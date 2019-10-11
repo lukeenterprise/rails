@@ -313,7 +313,7 @@ module ActiveRecord
           schema_cache.clear_data_source_cache!(table_name.to_s)
         end
 
-        result = execute schema_creation.accept td
+        result = exec_ddl schema_creation.accept td
 
         unless supports_indexes_in_create?
           td.indexes.each do |column_name, index_options|

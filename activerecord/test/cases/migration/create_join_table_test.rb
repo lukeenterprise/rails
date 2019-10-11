@@ -5,6 +5,8 @@ require "cases/helper"
 module ActiveRecord
   class Migration
     class CreateJoinTableTest < ActiveRecord::TestCase
+      self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
       attr_reader :connection
 
       def setup

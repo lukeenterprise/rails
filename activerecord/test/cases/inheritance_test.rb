@@ -498,6 +498,8 @@ class InheritanceTest < ActiveRecord::TestCase
 end
 
 class InheritanceComputeTypeTest < ActiveRecord::TestCase
+  self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
   include InheritanceTestHelper
   fixtures :companies
 

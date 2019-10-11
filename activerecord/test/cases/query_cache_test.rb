@@ -587,6 +587,8 @@ class QueryCacheTest < ActiveRecord::TestCase
 end
 
 class QueryCacheExpiryTest < ActiveRecord::TestCase
+  self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
   fixtures :tasks, :posts, :categories, :categories_posts
 
   def teardown

@@ -5,6 +5,8 @@ require "support/schema_dumping_helper"
 
 if ActiveRecord::Base.connection.supports_comments?
   class CommentTest < ActiveRecord::TestCase
+    self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
     include SchemaDumpingHelper
 
     class Commented < ActiveRecord::Base

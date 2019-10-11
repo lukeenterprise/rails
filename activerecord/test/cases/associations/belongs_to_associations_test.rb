@@ -27,6 +27,8 @@ require "models/treasure"
 require "models/parrot"
 
 class BelongsToAssociationsTest < ActiveRecord::TestCase
+  self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
   fixtures :accounts, :companies, :developers, :projects, :topics,
            :developers_projects, :computers, :authors, :author_addresses,
            :posts, :tags, :taggings, :comments, :sponsors, :members

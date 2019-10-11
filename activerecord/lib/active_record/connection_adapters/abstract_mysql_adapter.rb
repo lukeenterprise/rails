@@ -193,6 +193,14 @@ module ActiveRecord
         yield execute(sql, name)
       end
 
+      def exec_ddl(sql, name = nil) # :nodoc:
+        if open_transactions > 0 && !sql.match?(/(CREATE|DROP)\s+TEMPORARY\s+TABLE/i)
+          raise ImplicitTransactionCommit
+        end
+
+        execute(sql, name)
+      end
+
       def begin_db_transaction
         execute("BEGIN", "TRANSACTION")
       end
@@ -234,11 +242,11 @@ module ActiveRecord
       #   create_database 'matt_development', charset: :big5
       def create_database(name, options = {})
         if options[:collation]
-          execute "CREATE DATABASE #{quote_table_name(name)} DEFAULT COLLATE #{quote_table_name(options[:collation])}"
+          exec_ddl "CREATE DATABASE #{quote_table_name(name)} DEFAULT COLLATE #{quote_table_name(options[:collation])}"
         elsif options[:charset]
-          execute "CREATE DATABASE #{quote_table_name(name)} DEFAULT CHARACTER SET #{quote_table_name(options[:charset])}"
+          exec_ddl "CREATE DATABASE #{quote_table_name(name)} DEFAULT CHARACTER SET #{quote_table_name(options[:charset])}"
         elsif row_format_dynamic_by_default?
-          execute "CREATE DATABASE #{quote_table_name(name)} DEFAULT CHARACTER SET `utf8mb4`"
+          exec_ddl "CREATE DATABASE #{quote_table_name(name)} DEFAULT CHARACTER SET `utf8mb4`"
         else
           raise "Configure a supported :charset and ensure innodb_large_prefix is enabled to support indexes on varchar(255) string columns."
         end
@@ -249,7 +257,7 @@ module ActiveRecord
       # Example:
       #   drop_database('sebastian_development')
       def drop_database(name) #:nodoc:
-        execute "DROP DATABASE IF EXISTS #{quote_table_name(name)}"
+        exec_ddl "DROP DATABASE IF EXISTS #{quote_table_name(name)}"
       end
 
       def current_database
@@ -280,7 +288,7 @@ module ActiveRecord
       def change_table_comment(table_name, comment_or_changes) # :nodoc:
         comment = extract_new_comment_value(comment_or_changes)
         comment = "" if comment.nil?
-        execute("ALTER TABLE #{quote_table_name(table_name)} COMMENT #{quote(comment)}")
+        exec_ddl("ALTER TABLE #{quote_table_name(table_name)} COMMENT #{quote(comment)}")
       end
 
       # Renames a table.
@@ -290,7 +298,7 @@ module ActiveRecord
       def rename_table(table_name, new_name)
         schema_cache.clear_data_source_cache!(table_name.to_s)
         schema_cache.clear_data_source_cache!(new_name.to_s)
-        execute "RENAME TABLE #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
+        exec_ddl "RENAME TABLE #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
         rename_table_indexes(table_name, new_name)
       end
 
@@ -311,14 +319,19 @@ module ActiveRecord
       # In that case, +options+ and the block will be used by create_table.
       def drop_table(table_name, options = {})
         schema_cache.clear_data_source_cache!(table_name.to_s)
-        execute "DROP#{' TEMPORARY' if options[:temporary]} TABLE#{' IF EXISTS' if options[:if_exists]} #{quote_table_name(table_name)}#{' CASCADE' if options[:force] == :cascade}"
+        sql = "DROP#{' TEMPORARY' if options[:temporary]} TABLE#{' IF EXISTS' if options[:if_exists]} #{quote_table_name(table_name)}#{' CASCADE' if options[:force] == :cascade}"
+        if options[:temporary]
+          execute sql
+        else
+          exec_ddl sql
+        end
       end
 
       def rename_index(table_name, old_name, new_name)
         if supports_rename_index?
           validate_index_length!(table_name, new_name)
 
-          execute "ALTER TABLE #{quote_table_name(table_name)} RENAME INDEX #{quote_table_name(old_name)} TO #{quote_table_name(new_name)}"
+          exec_ddl "ALTER TABLE #{quote_table_name(table_name)} RENAME INDEX #{quote_table_name(old_name)} TO #{quote_table_name(new_name)}"
         else
           super
         end
@@ -343,18 +356,18 @@ module ActiveRecord
       end
 
       def change_column(table_name, column_name, type, options = {}) #:nodoc:
-        execute("ALTER TABLE #{quote_table_name(table_name)} #{change_column_for_alter(table_name, column_name, type, options)}")
+        exec_ddl("ALTER TABLE #{quote_table_name(table_name)} #{change_column_for_alter(table_name, column_name, type, options)}")
       end
 
       def rename_column(table_name, column_name, new_column_name) #:nodoc:
-        execute("ALTER TABLE #{quote_table_name(table_name)} #{rename_column_for_alter(table_name, column_name, new_column_name)}")
+        exec_ddl("ALTER TABLE #{quote_table_name(table_name)} #{rename_column_for_alter(table_name, column_name, new_column_name)}")
         rename_column_indexes(table_name, column_name, new_column_name)
       end
 
       def add_index(table_name, column_name, options = {}) #:nodoc:
         index_name, index_type, index_columns, _, index_algorithm, index_using, comment = add_index_options(table_name, column_name, **options)
         sql = +"CREATE #{index_type} INDEX #{quote_column_name(index_name)} #{index_using} ON #{quote_table_name(table_name)} (#{index_columns}) #{index_algorithm}"
-        execute add_sql_comment!(sql, comment)
+        exec_ddl add_sql_comment!(sql, comment)
       end
 
       def add_sql_comment!(sql, comment) # :nodoc:

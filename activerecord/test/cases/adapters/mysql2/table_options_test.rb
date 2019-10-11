@@ -4,6 +4,8 @@ require "cases/helper"
 require "support/schema_dumping_helper"
 
 class Mysql2TableOptionsTest < ActiveRecord::Mysql2TestCase
+  self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
   include SchemaDumpingHelper
 
   def setup

@@ -269,6 +269,8 @@ module ActiveRecord
 
     if subsecond_precision_supported?
       class QuoteARBaseTest < ActiveRecord::TestCase
+        self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
         class DatetimePrimaryKey < ActiveRecord::Base
         end
 

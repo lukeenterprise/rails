@@ -9,6 +9,8 @@ require "models/aircraft"
 require "models/numeric_data"
 
 class DirtyTest < ActiveRecord::TestCase
+  self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
   include InTimeZone
 
   # Dummy to force column loads so query counts are clean.

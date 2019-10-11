@@ -3,6 +3,8 @@
 require "cases/helper"
 
 class EagerSingularizationTest < ActiveRecord::TestCase
+  self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
   class Virus < ActiveRecord::Base
     belongs_to :octopus
   end

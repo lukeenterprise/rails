@@ -6,6 +6,8 @@ if ActiveRecord::Base.connection.supports_foreign_keys?
   module ActiveRecord
     class Migration
       class ReferencesForeignKeyInCreateTest < ActiveRecord::TestCase
+        self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
         setup do
           @connection = ActiveRecord::Base.connection
           @connection.create_table(:testing_parents, force: true)
@@ -69,6 +71,8 @@ if ActiveRecord::Base.connection.supports_foreign_keys?
   module ActiveRecord
     class Migration
       class ReferencesForeignKeyTest < ActiveRecord::TestCase
+        self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
         setup do
           @connection = ActiveRecord::Base.connection
           @connection.create_table(:testing_parents, force: true)

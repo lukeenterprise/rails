@@ -24,6 +24,8 @@ class DefaultTest < ActiveRecord::TestCase
 end
 
 class DefaultNumbersTest < ActiveRecord::TestCase
+  self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
   class DefaultNumber < ActiveRecord::Base; end
 
   setup do
@@ -60,6 +62,8 @@ end
 
 class DefaultStringsTest < ActiveRecord::TestCase
   class DefaultString < ActiveRecord::Base; end
+
+  self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
 
   setup do
     @connection = ActiveRecord::Base.connection

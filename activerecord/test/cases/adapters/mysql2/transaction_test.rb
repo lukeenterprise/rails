@@ -18,11 +18,9 @@ module ActiveRecord
       @connection = ActiveRecord::Base.connection
       @connection.clear_cache!
 
-      @connection.transaction do
-        @connection.drop_table "samples", if_exists: true
-        @connection.create_table("samples") do |t|
-          t.integer "value"
-        end
+      @connection.drop_table "samples", if_exists: true
+      @connection.create_table("samples") do |t|
+        t.integer "value"
       end
 
       Sample.reset_column_information

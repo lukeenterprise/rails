@@ -7,6 +7,8 @@ require "models/comment"
 module ActiveRecord
   module ConnectionAdapters
     class Mysql2SchemaTest < ActiveRecord::Mysql2TestCase
+      self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
       fixtures :posts
 
       def setup

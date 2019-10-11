@@ -4,6 +4,8 @@ require "cases/helper"
 
 module ActiveRecord
   class AttributeDecoratorsTest < ActiveRecord::TestCase
+    self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
     class Model < ActiveRecord::Base
       self.table_name = "attribute_decorators_model"
     end

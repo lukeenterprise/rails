@@ -168,6 +168,8 @@ if ActiveRecord::Base.connection.supports_foreign_keys?
   module ActiveRecord
     class Migration
       class ForeignKeyTest < ActiveRecord::TestCase
+        self.use_transactional_tests = ActiveRecord::Base.connection.supports_ddl_transactions?
+
         include SchemaDumpingHelper
         include ActiveSupport::Testing::Stream
 
