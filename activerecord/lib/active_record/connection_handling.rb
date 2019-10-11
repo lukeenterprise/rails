@@ -236,8 +236,9 @@ module ActiveRecord
     end
 
     def remove_connection(role = current_role)
-      connection = connection_handler.remove_connection(role)
-      
+      if handler = connection_handlers.delete(name)
+        handler.remove_connection(role)
+      end
     end
 
     def clear_cache! # :nodoc:

@@ -32,12 +32,12 @@ module ActiveRecord
         ActiveRecord::Base.configurations = config
         resolver = ConnectionAdapters::Resolver.new(ActiveRecord::Base.configurations)
         config_hash = resolver.resolve(config["readonly"]).configuration_hash
-        @handler.establish_connection(config_hash)
+        @handler.establish_connection(config_hash, role: :readonly)
 
-        assert_not_nil @handler.retrieve_connection_pool("readonly")
+        assert_not_nil @handler.retrieve_connection_pool(:readonly)
       ensure
         ActiveRecord::Base.configurations = old_config
-        @handler.remove_connection("readonly")
+        @handler.remove_connection(:readonly)
       end
 
       def test_establish_connection_using_3_levels_config
