@@ -1356,19 +1356,12 @@ class BasicsTest < ActiveRecord::TestCase
     assert_equal ["foo"], klass.all.merge!(select: "foo").select_values
   end
 
-  test "new threads get default the default connection handler" do
-    klass = Class.new(ActiveRecord::Base)
-    orig_handler = klass.connection_handler
-    handler = nil
-
-    t = Thread.new do
-      handler = klass.connection_handler
+  test "new threads get the default role" do
+    assert_equal :writing, ActiveRecord::Base.current_role
+    ActiveRecord::Base.connected_to(role: :reading) do
+      assert_equal :reading, ActiveRecord::Base.current_role
+      assert_equal :writing, Thread.new { ActiveRecord::Base.current_role }.value
     end
-    t.join
-
-    assert_equal handler, orig_handler
-    assert_equal klass.connection_handler, orig_handler
-    assert_equal klass.default_connection_handler, orig_handler
   end
 
   # Note: This is a performance optimization for Array#uniq and Hash#[] with
@@ -1600,7 +1593,6 @@ class BasicsTest < ActiveRecord::TestCase
 
       assert_match %r/\AWrite query attempted while in readonly mode: INSERT /, conn2_error.message
     ensure
-      ActiveRecord::Base.connection_handlers = { writing: ActiveRecord::Base.default_connection_handler }
       ActiveRecord::Base.establish_connection(:arunit)
     end
   end

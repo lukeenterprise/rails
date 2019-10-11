@@ -133,7 +133,7 @@ module ActiveRecord
                                   define_singleton_method(:name) { name }
                                   define_singleton_method(:to_s) { name }
 
-                                  establish_connection(db_config.configuration_hash)
+                                  establish_connection(db_config)
                                 end
                               end
       end
