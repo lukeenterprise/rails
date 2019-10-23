@@ -190,10 +190,10 @@ module ActiveRecord
       # can see data in the open transaction on the writing connection.
       def setup_shared_connection_pool
         ActiveRecord::Base.connection_handlers.values.each do |handler|
-          role_to_config = handler.instance_variable_get(:@role_to_config)
-          role_to_config.each do |role, _role_object|
+          roles = handler.instance_variable_get(:@roles)
+          roles.each do |role, _role_object|
             next if role == ActiveRecord::Base.writing_role
-            role_to_config[role] = role_to_config[ActiveRecord::Base.writing_role]
+            roles[role] = roles[ActiveRecord::Base.writing_role]
           end
         end
       end

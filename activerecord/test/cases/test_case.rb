@@ -33,7 +33,7 @@ module ActiveRecord
     def before_setup
       @original_ar_connection_handlers = ActiveRecord::Base.connection_handlers.each_with_object({}) do |(name, handler), h|
         h[name] = handler.dup
-        h[name].instance_variable_set(:@role_to_config, handler.instance_variable_get(:@role_to_config).dup)
+        h[name].instance_variable_set(:@roles, handler.instance_variable_get(:@roles).dup)
       end
       super
     end

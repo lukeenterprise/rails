@@ -1004,7 +1004,7 @@ module ActiveRecord
 
       def initialize
         # These caches are keyed by spec.name (ConnectionSpecification#name).
-        @role_to_config = Concurrent::Map.new(initial_capacity: 2)
+        @roles = Concurrent::Map.new(initial_capacity: 2)
 
         # Backup finalizer: if the forked child skipped Kernel#fork the early discard has not occurred
         ObjectSpace.define_finalizer self, FINALIZER
@@ -1042,11 +1042,11 @@ module ActiveRecord
       end
 
       def connection_pool_names # :nodoc:
-        role_to_config.keys
+        roles.keys
       end
 
       def connection_pool_list
-        role_to_config.values.compact.map(&:pool)
+        roles.values.compact.map(&:pool)
       end
       alias :connection_pools :connection_pool_list
 
@@ -1061,7 +1061,7 @@ module ActiveRecord
           connection_id: object_id,
           config: role_object.db_config.configuration_hash,
         }
-        role_to_config[role_object.role] = role_object
+        roles[role_object.role] = role_object
 
         message_bus.instrument("!connection.active_record", payload) do
           role_object.pool
@@ -1129,21 +1129,21 @@ module ActiveRecord
       # can be used as an argument for #establish_connection, for easily
       # re-establishing the connection.
       def remove_connection(role)
-        if role_object = role_to_config.delete(role)
+        if role_object = roles.delete(role)
           role_object.disconnect!
           role_object.db_config.configuration_hash
         end
       end
 
-      # Retrieving the connection pool happens a lot, so we cache it in @role_to_config.
+      # Retrieving the connection pool happens a lot, so we cache it in @roles.
       # This makes retrieving the connection pool O(1) once the process is warm.
       # When a connection is established or removed, we invalidate the cache.
       def retrieve_connection_pool(role)
-        role_to_config[role]&.pool
+        roles[role]&.pool
       end
 
       private
-        attr_reader :role_to_config
+        attr_reader :roles
 
         def current_roles
           roles = Thread.current.thread_variable_get(:ar_current_roles)

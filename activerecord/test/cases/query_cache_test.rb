@@ -543,7 +543,7 @@ class QueryCacheTest < ActiveRecord::TestCase
 
   private
     def with_temporary_connection_pool
-      role_object = ActiveRecord::Base.connection_handler.send(:role_to_config).fetch(:writing)
+      role_object = ActiveRecord::Base.connection_handler.send(:roles).fetch(:writing)
       new_pool = ActiveRecord::ConnectionAdapters::ConnectionPool.new(role_object)
 
       role_object.stub(:pool, new_pool) do
