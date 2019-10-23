@@ -49,15 +49,8 @@ module ActiveRecord
     def establish_connection(config_or_env = nil)
       db_config = resolve_config_for_connection(config_or_env)
 
-      assign_connection_handler(db_config.database)
+      assign_connection_handler
       connection_handler.establish_connection(db_config)
-    end
-
-    def assign_connection_handler(database_name)
-      return unless database_name
-
-      connection_handlers[name] ||= ConnectionAdapters::ConnectionHandler.new
-      @connection_handler = connection_handlers[name]
     end
 
     # Connects a model to the databases specified. The +database+ keyword
@@ -79,7 +72,7 @@ module ActiveRecord
 
       database.each do |role, database_key|
         db_config = resolve_config_for_connection(database_key)
-        assign_connection_handler(db_config.database)
+        assign_connection_handler
         connections << connection_handler.establish_connection(db_config, role: role)
       end
 
@@ -133,7 +126,7 @@ module ActiveRecord
         end
 
         db_config = resolve_config_for_connection(database)
-        assign_connection_handler(db_config.database)
+        assign_connection_handler
         connection_handler.establish_connection(db_config, role: role)
         with_role(role, &blk)
       elsif role
@@ -192,13 +185,14 @@ module ActiveRecord
       retrieve_connection
     end
 
-    attr_writer :connection_handler
-
     def connection_handler
-      if !defined?(@connection_handler) || @connection_handler.nil?
-        return self == Base ? @connection_handler ||= default_connection_handler : superclass.connection_handler
+      connection_handlers.fetch(connection_handler_name) do
+        self == Base ? connection_handlers[connection_handler_name] ||= default_connection_handler : superclass.connection_handler
       end
-      @connection_handler
+    end
+
+    def connection_handler=(handler)
+      connection_handlers[connection_handler_name] = handler
     end
 
     def primary_class? # :nodoc:
@@ -243,7 +237,21 @@ module ActiveRecord
     delegate :clear_active_connections!, :clear_reloadable_connections!,
       :clear_all_connections!, :flush_idle_connections!, to: :connection_handler
 
+    protected
+      def connection_handler_name
+        if !defined?(@connection_handler_name) || @connection_handler_name.nil?
+          return self == Base ? @connection_handler_name ||= -name : superclass.connection_handler_name
+        end
+        @connection_handler_name
+      end
+
     private
+      def assign_connection_handler(handler_name = name)
+        @connection_handler_name = handler_name
+
+        connection_handlers[connection_handler_name] ||= ConnectionAdapters::ConnectionHandler.new
+      end
+
       def resolve_config_for_connection(config_or_env)
         raise "Anonymous class is not allowed." unless name
 
