@@ -138,7 +138,7 @@ class LoadingTest < ActiveSupport::TestCase
     get "/load"
     assert_equal [Post].collect(&:to_s).sort, ActiveRecord::Base.descendants.collect(&:to_s).sort - initial
     get "/unload"
-    assert_equal ["ActiveRecord::InternalMetadata", "ActiveRecord::SchemaMigration", "ActiveRecord::Base"], ActiveRecord::Base.descendants.collect(&:to_s).sort.uniq
+    assert_equal ["ActiveRecord::Base", "ActiveRecord::InternalMetadata", "ActiveRecord::SchemaMigration"], ActiveRecord::Base.descendants.collect(&:to_s).sort.uniq
   end
 
   test "initialize cant be called twice" do
