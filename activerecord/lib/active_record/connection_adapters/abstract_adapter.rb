@@ -125,29 +125,25 @@ module ActiveRecord
 
       def schema_migration # :nodoc:
         @schema_migration ||= begin
-                                db_config = self.pool.db_config
-                                handler_name = find_connection_handler
+                                name = "#{self.pool.db_config.spec_name}::SchemaMigration"
+                                superclass = find_connection_handler
 
-                                Class.new(ActiveRecord::SchemaMigration) do
-                                  define_singleton_method(:name) { handler_name }
-                                  define_singleton_method(:to_s) { handler_name }
-                                end.tap { |klass| klass.assign_connection_handler(db_config.database) }
+                                Class.new(superclass) do
+                                  define_singleton_method(:name) { name }
+                                  define_singleton_method(:to_s) { name }
+
+                                  include ActiveRecord::SchemaMigration::Concern
+                                end
                               end
       end
 
       def find_connection_handler
-        connection_handler = nil
-        ActiveRecord::Base.connection_handlers.find do |name, handler|
+        ActiveRecord::Base.connection_handlers.each do |name, handler|
           handler.connection_pools.each do |pool|
-            next if pool != self.pool
-
-            connection_handler = name
-            break
+            return name.constantize if pool == self.pool
           end
-
-          break if connection_handler
         end
-        connection_handler
+        raise "NOT FOUND"
       end
 
       def prepared_statements

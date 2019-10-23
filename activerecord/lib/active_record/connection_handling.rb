@@ -49,15 +49,8 @@ module ActiveRecord
     def establish_connection(config_or_env = nil)
       db_config = resolve_config_for_connection(config_or_env)
 
-      assign_connection_handler(db_config.database)
+      assign_connection_handler
       connection_handler.establish_connection(db_config)
-    end
-
-    def assign_connection_handler(database_name)
-      return unless database_name
-
-      connection_handlers[name] ||= ConnectionAdapters::ConnectionHandler.new
-      @connection_handler = connection_handlers[name]
     end
 
     # Connects a model to the databases specified. The +database+ keyword
@@ -79,7 +72,7 @@ module ActiveRecord
 
       database.each do |role, database_key|
         db_config = resolve_config_for_connection(database_key)
-        assign_connection_handler(db_config.database)
+        assign_connection_handler
         connections << connection_handler.establish_connection(db_config, role: role)
       end
 
@@ -133,7 +126,7 @@ module ActiveRecord
         end
 
         db_config = resolve_config_for_connection(database)
-        assign_connection_handler(db_config.database)
+        assign_connection_handler
         connection_handler.establish_connection(db_config, role: role)
         with_role(role, &blk)
       elsif role
@@ -244,6 +237,10 @@ module ActiveRecord
       :clear_all_connections!, :flush_idle_connections!, to: :connection_handler
 
     private
+      def assign_connection_handler
+        @connection_handler = connection_handlers[name] ||= ConnectionAdapters::ConnectionHandler.new
+      end
+
       def resolve_config_for_connection(config_or_env)
         raise "Anonymous class is not allowed." unless name
 
