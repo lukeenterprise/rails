@@ -11,7 +11,11 @@ module ActiveRecord
      end
 
      def migration_context # :nodoc:
-       MigrationContext.new(writing_role.db_config.migrations_paths, schema_migration)
+       MigrationContext.new(migrations_paths, schema_migration)
+     end
+
+     def migrations_paths
+       writing_role.db_config.migrations_paths || Migrator.migrations_paths
      end
 
      def schema_migration # :nodoc:

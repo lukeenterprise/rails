@@ -80,7 +80,6 @@ db_namespace = namespace :db do
 
   desc "Migrate the database (options: VERSION=x, VERBOSE=false, SCOPE=blog)."
   task migrate: :load_config do
-    ActiveRecord::Base.logger = Logger.new(STDOUT)
     ActiveRecord::Tasks::DatabaseTasks.for_each(databases) do |schema_name|
       ActiveRecord::Tasks::DatabaseTasks.migrate(schema_name)
     end

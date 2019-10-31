@@ -17,9 +17,11 @@ module ActiveRecord
       end
 
       def create
-        establish_connection(configuration_hash_without_database)
-        connection.create_database(db_config.database, creation_options)
-        establish_connection(db_config)
+        role = ActiveRecord::Base.configurations.schemas.fetch(db_config.spec_name).roles.fetch(ActiveRecord::Base.writing_role)
+
+        with_no_database_specified(role) do |database|
+          role.pool.connection.create_database(database, creation_options)
+        end
       end
 
       def drop
@@ -70,9 +72,19 @@ module ActiveRecord
       private
         attr_reader :db_config, :configuration_hash
 
-        def configuration_hash_without_database
-          configuration_hash.merge(database: nil)
+        def with_no_database_specified(role)
+          role.disconnect!
+          role.discard_pool!
+
+          database = role.db_config.instance_variable_get(:@config).delete(:database)
+          yield(database)
+        ensure
+          role.disconnect!
+          role.discard_pool!
+
+          role.db_config.instance_variable_get(:@config)[:database] = database
         end
+
 
         def creation_options
           Hash.new.tap do |options|

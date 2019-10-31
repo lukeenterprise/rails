@@ -814,7 +814,7 @@ module ActiveRecord
     end
 
     # Execute this migration in the named direction
-    def migrate(direction)
+    def migrate(direction, connection)
       return unless respond_to?(direction)
 
       case direction
@@ -823,10 +823,8 @@ module ActiveRecord
       end
 
       time = nil
-      ActiveRecord::Base.connection_pool.with_connection do |conn|
-        time = Benchmark.measure do
-          exec_migration(conn, direction)
-        end
+      time = Benchmark.measure do
+        exec_migration(connection, direction)
       end
 
       case direction
@@ -1000,8 +998,8 @@ module ActiveRecord
 
   # MigrationProxy is used to defer loading of the actual migration classes
   # until they are needed
-  MigrationProxy = Struct.new(:name, :version, :filename, :scope) do
-    def initialize(name, version, filename, scope)
+  MigrationProxy = Struct.new(:name, :version, :filename, :scope, :schema_migration) do
+    def initialize(name, version, filename, scope, schema_migration)
       super
       @migration = nil
     end
@@ -1010,7 +1008,11 @@ module ActiveRecord
       File.basename(filename)
     end
 
-    delegate :migrate, :announce, :write, :disable_ddl_transaction, to: :migration
+    def migrate(direction)
+      migration.migrate(direction, schema_migration.connection)
+    end
+
+    delegate :announce, :write, :disable_ddl_transaction, to: :migration
 
     private
       def migration
@@ -1108,7 +1110,7 @@ module ActiveRecord
         version = version.to_i
         name = name.camelize
 
-        MigrationProxy.new(name, version, file, scope)
+        MigrationProxy.new(name, version, file, scope, schema_migration)
       end
 
       migrations.sort_by(&:version)

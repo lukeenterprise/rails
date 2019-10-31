@@ -176,7 +176,7 @@ module ActiveRecord
 
           UrlConfig.new(env_name, spec_name, url, config_without_url)
         else
-          HashConfig.new(env_name, spec_name, config)
+          HashConfig.new(env_name, spec_name.to_sym, config)
         end
       end
 
