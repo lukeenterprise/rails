@@ -80,9 +80,9 @@ db_namespace = namespace :db do
 
   desc "Migrate the database (options: VERSION=x, VERBOSE=false, SCOPE=blog)."
   task migrate: :load_config do
-    ActiveRecord::Base.configurations.configs_for(env_name: ActiveRecord::Tasks::DatabaseTasks.env).each do |db_config|
-      ActiveRecord::Base.establish_connection(db_config)
-      ActiveRecord::Tasks::DatabaseTasks.migrate
+    ActiveRecord::Base.logger = Logger.new(STDOUT)
+    ActiveRecord::Tasks::DatabaseTasks.for_each(databases) do |schema_name|
+      ActiveRecord::Tasks::DatabaseTasks.migrate(schema_name)
     end
     db_namespace["_dump"].invoke
   end
@@ -103,12 +103,10 @@ db_namespace = namespace :db do
   end
 
   namespace :migrate do
-    ActiveRecord::Tasks::DatabaseTasks.for_each(databases) do |spec_name|
-      desc "Migrate #{spec_name} database for current environment"
-      task spec_name => :load_config do
-        db_config = ActiveRecord::Base.configurations.configs_for(env_name: Rails.env, spec_name: spec_name)
-        ActiveRecord::Base.establish_connection(db_config)
-        ActiveRecord::Tasks::DatabaseTasks.migrate
+    ActiveRecord::Tasks::DatabaseTasks.for_each(databases) do |schema_name|
+      desc "Migrate #{schema_name} database for current environment"
+      task schema_name => :load_config do
+        ActiveRecord::Tasks::DatabaseTasks.migrate(schema_name)
       end
     end
 
@@ -252,10 +250,9 @@ db_namespace = namespace :db do
 
   # desc "Raises an error if there are pending migrations"
   task abort_if_pending_migrations: :load_config do
-    pending_migrations = ActiveRecord::Base.configurations.configs_for(env_name: ActiveRecord::Tasks::DatabaseTasks.env).flat_map do |db_config|
-      ActiveRecord::Base.establish_connection(db_config)
-
-      ActiveRecord::Base.connection.migration_context.open.pending_migrations
+    pending_migrations = []
+    ActiveRecord::Tasks::DatabaseTasks.for_each(databases) do |schema_name|
+      pending_migrations += ActiveRecord::Base.configurations.schemas.fetch(schema_name).migration_context.open.pending_migrations
     end
 
     if pending_migrations.any?

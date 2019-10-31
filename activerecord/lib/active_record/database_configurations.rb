@@ -12,10 +12,11 @@ module ActiveRecord
   class DatabaseConfigurations
     class InvalidConfigurationError < StandardError; end
 
-    attr_reader :configurations
+    attr_reader :configurations, :schemas
     delegate :any?, to: :configurations
 
     def initialize(configurations = {})
+      @schemas = {}
       @configurations = build_configs(configurations)
     end
 
@@ -137,7 +138,7 @@ module ActiveRecord
       end
 
       def walk_configs(env_name, config)
-        config.map do |spec_name, sub_config|
+        config.flat_map do |spec_name, sub_config|
           build_db_config_from_raw_config(env_name, spec_name.to_s, sub_config)
         end
       end
@@ -147,7 +148,11 @@ module ActiveRecord
         when String
           build_db_config_from_string(env_name, spec_name, config)
         when Hash
-          build_db_config_from_hash(env_name, spec_name, config.symbolize_keys)
+          config.map do |role_name, subconfig|
+            db_config = build_db_config_from_hash(env_name, spec_name, subconfig.symbolize_keys)
+            schema = schemas[spec_name.to_sym] ||= ConnectionAdapters::Schema.new(spec_name.to_sym)
+            schema.add_role(role_name.to_sym, ConnectionAdapters::Role.new("kill-me", db_config))
+          end.map(&:db_config)
         else
           raise InvalidConfigurationError, "'{ #{env_name} => #{config} }' is not a valid configuration. Expected '#{config}' to be a URL string or a Hash."
         end

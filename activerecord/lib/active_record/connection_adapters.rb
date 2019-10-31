@@ -10,6 +10,7 @@ module ActiveRecord
 
     autoload :Column
     autoload :Role
+    autoload :Schema
     autoload :Resolver
 
     autoload_at "active_record/connection_adapters/abstract/schema_definitions" do

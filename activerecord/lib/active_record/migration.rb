@@ -1201,7 +1201,7 @@ module ActiveRecord
       validate(@migrations)
 
       @schema_migration.create_table
-      ActiveRecord::InternalMetadata.create_table
+      ActiveRecord::InternalMetadata.create_table # TODO: parametize
     end
 
     def current_version
@@ -1285,7 +1285,7 @@ module ActiveRecord
       # Stores the current environment in the database.
       def record_environment
         return if down?
-        ActiveRecord::InternalMetadata[:environment] = ActiveRecord::Base.connection.migration_context.current_environment
+        ActiveRecord::InternalMetadata[:environment] = @schema_migration.connection.migration_context.current_environment
       end
 
       def ran?(migration)
@@ -1355,23 +1355,23 @@ module ActiveRecord
       # Wrap the migration in a transaction only if supported by the adapter.
       def ddl_transaction(migration)
         if use_transaction?(migration)
-          Base.transaction { yield }
+          @schema_migration.transaction { yield }
         else
           yield
         end
       end
 
       def use_transaction?(migration)
-        !migration.disable_ddl_transaction && Base.connection.supports_ddl_transactions?
+        !migration.disable_ddl_transaction && @schema_migration.connection.supports_ddl_transactions?
       end
 
       def use_advisory_lock?
-        Base.connection.advisory_locks_enabled?
+        @schema_migration.connection.advisory_locks_enabled?
       end
 
       def with_advisory_lock
         lock_id = generate_migrator_advisory_lock_id
-        connection = Base.connection
+        connection = @schema_migration.connection
         got_lock = connection.get_advisory_lock(lock_id)
         raise ConcurrentMigrationError unless got_lock
         load_migrated # reload schema_migrations to be sure it wasn't changed by another process before we got the lock
@@ -1386,7 +1386,7 @@ module ActiveRecord
 
       MIGRATOR_SALT = 2053462845
       def generate_migrator_advisory_lock_id
-        db_name_hash = Zlib.crc32(Base.connection.current_database)
+        db_name_hash = Zlib.crc32(@schema_migration.connection.current_database)
         MIGRATOR_SALT * db_name_hash
       end
   end

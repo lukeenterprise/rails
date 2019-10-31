@@ -158,13 +158,13 @@ module ActiveRecord
       def for_each(databases)
         return {} unless defined?(Rails)
 
-        database_configs = ActiveRecord::DatabaseConfigurations.new(databases).configs_for(env_name: Rails.env)
-
+        database_configs = ActiveRecord::DatabaseConfigurations.new(databases)
+        schema_names = database_configs.schemas.keys
         # if this is a single database application we don't want tasks for each primary database
-        return if database_configs.count == 1
+        return if schema_names.size == 1
 
-        database_configs.each do |db_config|
-          yield db_config.spec_name
+        schema_names.each do |schema_name|
+          yield schema_name
         end
       end
 
@@ -221,13 +221,13 @@ module ActiveRecord
         end
       end
 
-      def migrate
+      def migrate(schema_name)
         check_target_version
 
         scope = ENV["SCOPE"]
         verbose_was, Migration.verbose = Migration.verbose, verbose?
 
-        Base.connection.migration_context.migrate(target_version) do |migration|
+        Base.configurations.schemas.fetch(schema_name).migration_context.migrate(target_version) do |migration|
           scope.blank? || scope == migration.scope
         end
 

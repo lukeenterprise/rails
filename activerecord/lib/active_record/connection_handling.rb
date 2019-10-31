@@ -65,17 +65,21 @@ module ActiveRecord
     #   end
     #
     # Returns an array of established connections.
-    def connects_to(database: {})
-      connections = []
+    def connects_to(database: {}, schema: nil)
+      if schema
+        @schema_name = schema.to_sym
+      else
+        connections = []
 
-      database.each do |role, database_key|
-        db_config = resolve_config_for_connection(database_key)
-        handler = lookup_connection_handler(role.to_sym)
+        database.each do |role, database_key|
+          db_config = resolve_config_for_connection(database_key)
+          handler = lookup_connection_handler(role.to_sym)
 
-        connections << handler.establish_connection(db_config)
+          connections << handler.establish_connection(db_config)
+        end
+
+        connections
       end
-
-      connections
     end
 
     # Connects to a database or role (ex writing, reading, or another
@@ -192,6 +196,16 @@ module ActiveRecord
       retrieve_connection
     end
 
+    attr_writer :schema_name
+
+    # Return the schema name from the current class or its parent.
+    def schema_name
+      if !defined?(@schema_name) || @schema_name.nil?
+        return self == Base ? :primary : superclass.schema_name
+      end
+      @schema_name
+    end
+
     attr_writer :connection_specification_name
 
     # Return the specification name from the current class or its parent.
@@ -221,7 +235,8 @@ module ActiveRecord
     end
 
     def retrieve_connection
-      connection_handler.retrieve_connection(connection_specification_name)
+      # TODO: configurations.role(schema: schema_name, role: current_role)
+      configurations.schemas.fetch(schema_name).roles.fetch(current_role).pool.connection
     end
 
     # Returns +true+ if Active Record is connected.
