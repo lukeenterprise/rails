@@ -5,12 +5,13 @@ require "active_support/core_ext/kernel/reporting"
 require "active_support/file_update_checker"
 require "rails/engine/configuration"
 require "rails/source_annotation_extractor"
+require "rails/application/config_loader"
 
 module Rails
   class Application
     class Configuration < ::Rails::Engine::Configuration
       attr_accessor :allow_concurrency, :asset_host, :autoflush_log,
-                    :cache_classes, :cache_store, :consider_all_requests_local, :console,
+                    :cache_classes, :cache_store, :config_loaders, :consider_all_requests_local, :console,
                     :eager_load, :exceptions_app, :file_watcher, :filter_parameters,
                     :force_ssl, :helpers_paths, :hosts, :logger, :log_formatter, :log_tags,
                     :railties_order, :relative_url_root, :secret_key_base,
@@ -70,6 +71,7 @@ module Rails
         @disable_sandbox                         = false
         @add_autoload_paths_to_load_path         = true
         @feature_policy                          = nil
+        @config_loaders                          = [ConfigLoader::Default]
       end
 
       # Loads default configurations. See {the result of the method for each version}[https://guides.rubyonrails.org/configuring.html#results-of-config-load-defaults].

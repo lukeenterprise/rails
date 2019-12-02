@@ -2217,6 +2217,32 @@ module ApplicationTests
       assert_equal "unicorn", Rails.application.config.my_custom_config[:key]
     end
 
+    test "config_for can use custom backends" do
+      app_file "config/custom.yml", <<-RUBY
+      development:
+        foo: 'bar'
+      RUBY
+
+      add_to_config <<-RUBY
+        module CustomLoader
+          class << self
+            def config_for(app, name, env:)
+              if name.to_s == 'custom'
+                { foo: 42 }
+              end
+            end
+          end
+        end
+        config.config_loaders.unshift(CustomLoader)
+
+        config.my_custom_config = config_for('custom')
+      RUBY
+
+      app "development"
+
+      assert_equal 42, Rails.application.config.my_custom_config[:foo]
+    end
+
     test "api_only is false by default" do
       app "development"
       assert_not Rails.application.config.api_only
