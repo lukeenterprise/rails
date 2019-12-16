@@ -57,12 +57,12 @@ module ActiveSupport
 
     # Returns a <tt>Time</tt> instance that represents the time in +time_zone+.
     def time
-      @time ||= period.to_local(@utc)
+      @time ||= time_zone.utc_to_local(@utc)
     end
 
     # Returns a <tt>Time</tt> instance of the simultaneous time in the UTC timezone.
     def utc
-      @utc ||= period.to_utc(@time)
+      @utc ||= time_zone.local_to_utc(@time)
     end
     alias_method :comparable_time, :utc
     alias_method :getgm, :utc
@@ -104,7 +104,7 @@ module ActiveSupport
     #   Time.zone = 'Eastern Time (US & Canada)'    # => 'Eastern Time (US & Canada)'
     #   Time.zone.now.utc?                          # => false
     def utc?
-      period.offset.abbreviation == :UTC || period.offset.abbreviation == :UCT
+      period.offset.abbreviation == "UTC" || period.offset.abbreviation == "UCT"
     end
     alias_method :gmt?, :utc?
 

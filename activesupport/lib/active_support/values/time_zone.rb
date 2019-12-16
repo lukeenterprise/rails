@@ -203,7 +203,7 @@ module ActiveSupport
       end
 
       def find_tzinfo(name)
-        TZInfo::Timezone.new(MAPPING[name] || name)
+        TZInfo::Timezone.get(MAPPING[name] || name)
       end
 
       alias_method :create, :new
