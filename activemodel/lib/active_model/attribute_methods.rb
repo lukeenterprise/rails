@@ -207,11 +207,13 @@ module ActiveModel
       #   person.nickname_short? # => true
       def alias_attribute(new_name, old_name)
         self.attribute_aliases = attribute_aliases.merge(new_name.to_s => old_name.to_s)
+        owner = CodeGenerationBatcher.new(self, __FILE__, __LINE__)
         attribute_method_matchers.each do |matcher|
           matcher_new = matcher.method_name(new_name).to_s
           matcher_old = matcher.method_name(old_name).to_s
-          define_proxy_call false, self, matcher_new, matcher_old
+          define_proxy_call false, owner, matcher_new, matcher_old
         end
+        owner.execute
       end
 
       # Is +new_name+ an alias?
@@ -249,7 +251,9 @@ module ActiveModel
       #     end
       #   end
       def define_attribute_methods(*attr_names)
-        attr_names.flatten.each { |attr_name| define_attribute_method(attr_name) }
+        owner = CodeGenerationBatcher.new(generated_attribute_methods, __FILE__, __LINE__)
+        attr_names.flatten.each { |attr_name| define_attribute_method(attr_name, owner: owner) }
+        owner.execute
       end
 
       # Declares an attribute that should be prefixed and suffixed by
@@ -281,7 +285,7 @@ module ActiveModel
       #   person.name = 'Bob'
       #   person.name        # => "Bob"
       #   person.name_short? # => true
-      def define_attribute_method(attr_name)
+      def define_attribute_method(attr_name, owner: generated_attribute_methods)
         attribute_method_matchers.each do |matcher|
           method_name = matcher.method_name(attr_name)
 
@@ -291,7 +295,7 @@ module ActiveModel
             if respond_to?(generate_method, true)
               send(generate_method, attr_name.to_s)
             else
-              define_proxy_call true, generated_attribute_methods, method_name, matcher.target, attr_name.to_s
+              define_proxy_call true, owner, method_name, matcher.target, attr_name.to_s
             end
           end
         end
@@ -329,6 +333,24 @@ module ActiveModel
       end
 
       private
+        class CodeGenerationBatcher
+          def initialize(mod, path, line)
+            @module = mod
+            @path = path
+            @line = line
+            @sources = []
+          end
+
+          def module_eval(source, _path, _line)
+            @sources << source
+          end
+
+          def execute
+            @module.module_eval(@sources.join("\n"), @path, @line)
+          end
+        end
+        private_constant :CodeGenerationBatcher
+
         def generated_attribute_methods
           @generated_attribute_methods ||= Module.new.tap { |mod| include mod }
         end
