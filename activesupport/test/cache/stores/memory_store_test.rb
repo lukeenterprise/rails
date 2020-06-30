@@ -18,8 +18,8 @@ end
 
 class MemoryStorePruningTest < ActiveSupport::TestCase
   def setup
-    @record_size = ActiveSupport::Cache.lookup_store(:memory_store).send(:cached_size, 1, ActiveSupport::Cache::Entry.new("aaaaaaaaaa"))
-    @cache = ActiveSupport::Cache.lookup_store(:memory_store, expires_in: 60, size: @record_size * 10 + 1)
+    @record_size = Marshal.dump(ActiveSupport::Cache::Entry.new("aaaaaaaaaa", expires_in: 1)).bytesize + 5
+    @cache = ActiveSupport::Cache.lookup_store(:memory_store, expires_in: 60, size: (@record_size + 1) * 10)
   end
 
   def test_prune_size

@@ -50,8 +50,11 @@ module ActiveSupport
         instrument(:cleanup, size: @data.size) do
           keys = synchronize { @data.keys }
           keys.each do |key|
-            entry = @data[key]
-            delete_entry(key, **options) if entry && entry.expired?
+            payload = @data[key]
+            if payload
+              entry = Marshal.load(payload)
+              delete_entry(key, **options) if entry && entry.expired?
+            end
           end
         end
       end
@@ -114,18 +117,12 @@ module ActiveSupport
       end
 
       private
-        PER_ENTRY_OVERHEAD = 240
-
-        def cached_size(key, entry)
-          key.to_s.bytesize + entry.size + PER_ENTRY_OVERHEAD
-        end
-
         def read_entry(key, **options)
-          entry = @data[key]
+          entry = nil
+          payload = @data[key]
           synchronize do
-            if entry
-              entry = entry.dup
-              entry.dup_value!
+            if payload
+              entry = Marshal.load(payload)
               @key_access[key] = Time.now.to_f
             else
               @key_access.delete(key)
@@ -135,17 +132,16 @@ module ActiveSupport
         end
 
         def write_entry(key, entry, **options)
-          entry.dup_value!
           synchronize do
-            old_entry = @data[key]
+            old_payload = @data[key]
             return false if @data.key?(key) && options[:unless_exist]
-            if old_entry
-              @cache_size -= (old_entry.size - entry.size)
-            else
-              @cache_size += cached_size(key, entry)
-            end
             @key_access[key] = Time.now.to_f
-            @data[key] = entry
+            new_payload = @data[key] = Marshal.dump(entry)
+            if old_payload
+              @cache_size -= old_payload.bytesize + new_payload.bytesize
+            else
+              @cache_size += key.bytesize + new_payload.bytesize
+            end
             prune(@max_size * 0.75, @max_prune_time) if @cache_size > @max_size
             true
           end
@@ -154,9 +150,9 @@ module ActiveSupport
         def delete_entry(key, **options)
           synchronize do
             @key_access.delete(key)
-            entry = @data.delete(key)
-            @cache_size -= cached_size(key, entry) if entry
-            !!entry
+            payload = @data.delete(key)
+            @cache_size -= (key.bytesize + payload.bytesize) if payload
+            !!payload
           end
         end
 

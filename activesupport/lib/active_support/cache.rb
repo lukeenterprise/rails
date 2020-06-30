@@ -795,19 +795,6 @@ module ActiveSupport
         end
       end
 
-      # Returns the size of the cached value. This could be less than
-      # <tt>value.size</tt> if the data is compressed.
-      def size
-        case value
-        when NilClass
-          0
-        when String
-          @value.bytesize
-        else
-          @s ||= Marshal.dump(@value).bytesize
-        end
-      end
-
       # Duplicates the value in a class. This is used by cache implementations that don't natively
       # serialize entries to protect against accidental cache modifications.
       def dup_value!
