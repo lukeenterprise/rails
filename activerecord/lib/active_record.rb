@@ -103,6 +103,7 @@ module ActiveRecord
     end
 
     autoload :Result
+    autoload :FutureResult
     autoload :TableMetadata
     autoload :Type
   end

@@ -93,12 +93,12 @@ module ActiveRecord
         end
       end
 
-      def select_all(arel, name = nil, binds = [], preparable: nil)
+      def select_all(arel, name = nil, binds = [], preparable: nil, async: false)
         if @query_cache_enabled && !locked?(arel)
           arel = arel_from_relation(arel)
           sql, binds, preparable = to_sql_and_binds(arel, binds, preparable)
 
-          cache_sql(sql, name, binds) { super(sql, name, binds, preparable: preparable) }
+          cache_sql(sql, name, binds) { super(sql, name, binds, preparable: preparable, async: async) }
         else
           super
         end

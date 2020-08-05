@@ -23,6 +23,10 @@ module ActiveRecord
       assert_equal FakeKlass, relation.model
     end
 
+    def test_async
+      assert_equal Post.all.to_a, Post.all.defer.to_a
+    end
+
     def test_initialize_single_values
       relation = Relation.new(FakeKlass)
       (Relation::SINGLE_VALUE_METHODS - [:create_with]).each do |method|

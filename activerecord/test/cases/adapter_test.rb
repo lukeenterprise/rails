@@ -311,6 +311,20 @@ module ActiveRecord
       assert result.is_a?(ActiveRecord::Result)
     end
 
+    def test_async_select_all
+      future_result = @connection.select_all "SELECT * FROM posts", async: true
+      assert_kind_of ActiveRecord::FutureResult, future_result
+      assert_kind_of ActiveRecord::Result, future_result.result!
+    end
+
+    def test_async_select_failure
+      future_result = @connection.select_all "SELECT * FROM does_not_exists", async: true
+      assert_kind_of ActiveRecord::FutureResult, future_result
+      assert_raises ActiveRecord::StatementInvalid do
+        future_result.result!
+      end
+    end
+
     if ActiveRecord::Base.connection.prepared_statements
       def test_select_all_insert_update_delete_with_legacy_binds
         binds = [[Event.column_for_attribute("id"), 1]]

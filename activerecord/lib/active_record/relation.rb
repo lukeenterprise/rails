@@ -628,6 +628,17 @@ module ActiveRecord
       where(*args).delete_all
     end
 
+    def defer
+      unless loaded? || scheduled?
+        @future_results = exec_main_query(async: true)
+      end
+      self
+    end
+
+    def scheduled?
+      !!(@future_results ||= nil)
+    end
+
     # Causes the records to be loaded from the database if they have not
     # been loaded already. You can use this if for some reason you need
     # to explicitly load some records before actually using them. The
@@ -833,22 +844,14 @@ module ActiveRecord
 
       def exec_queries(&block)
         skip_query_cache_if_necessary do
-          records =
-            if where_clause.contradiction?
-              []
-            elsif eager_loading?
-              apply_join_dependency do |relation, join_dependency|
-                if relation.null_relation?
-                  []
-                else
-                  relation = join_dependency.apply_column_aliases(relation)
-                  rows = connection.select_all(relation.arel, "SQL")
-                  join_dependency.instantiate(rows, strict_loading_value, &block)
-                end.freeze
-              end
-            else
-              klass.find_by_sql(arel, &block).freeze
-            end
+          rows = if scheduled?
+            future = @future_results
+            @future_results = nil
+            future.result!
+          else
+            exec_main_query
+          end
+          records = instantiate_records(rows)
 
           preload_associations(records) unless skip_preloading_value
 
@@ -856,6 +859,36 @@ module ActiveRecord
           records.each(&:strict_loading!) if strict_loading_value
 
           records
+        end
+      end
+
+      def exec_main_query(async: false)
+        skip_query_cache_if_necessary do
+          if where_clause.contradiction?
+            []
+          elsif eager_loading?
+            apply_join_dependency do |relation, join_dependency|
+              if relation.null_relation?
+                []
+              else
+                relation = join_dependency.apply_column_aliases(relation)
+                connection.select_all(relation.arel, "SQL", async: async)
+              end
+            end
+          else
+            klass._query_by_sql(arel, async: async)
+          end
+        end
+      end
+
+      def instantiate_records(rows, &block)
+        return [].freeze if rows.empty?
+        if eager_loading?
+          apply_join_dependency do |relation, join_dependency|
+            join_dependency.instantiate(rows, strict_loading_value, &block).freeze
+          end
+        else
+          klass._load_from_sql(rows, &block).freeze
         end
       end
 
