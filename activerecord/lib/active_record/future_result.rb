@@ -6,16 +6,17 @@ module ActiveRecord
       # TODO: this should have sane defaults computed from the db config pool size etc.
       # It could also make sense to have distinct thread pools per connection pools.
       @thread_pool = Concurrent::ThreadPoolExecutor.new( 
-        min_threads: 0,
+        min_threads: 5,
         max_threads: 5,
         max_queue: 25,
-        fallback_policy: :caller_runs
+        # fallback_policy: :caller_runs
       )
     end
 
     def register(future_result)
       current_queries[future_result] = future_result
-      @thread_pool.post { p :pool_run; future_result.execute_or_skip }
+      Thread.start { future_result.execute_or_skip }
+      @thread_pool.post { future_result.execute_or_skip }
     end
 
     # This should be called from a request/job middleware to cancel all queries that might not have been used
@@ -54,6 +55,7 @@ module ActiveRecord
       @executed = false
       @error = nil
       @result = nil
+      schedule!
     end
 
     def schedule!
@@ -69,6 +71,8 @@ module ActiveRecord
       return if @executed
       return unless @mutex.try_lock
       return if @executed
+
+      ActiveRecord::Base.logger.info("Executing in background #{Process.clock_gettime(Process::CLOCK_MONOTONIC)}")
 
       begin
         execute_query
@@ -90,9 +94,19 @@ module ActiveRecord
 
     def execute_or_wait
       return if @executed
-      @mutex.synchronize do
-        return if @executed
-        execute_query
+      if @mutex.try_lock
+        begin
+          ActiveRecord::Base.logger.info("Executing in foreground #{Process.clock_gettime(Process::CLOCK_MONOTONIC)}")
+          execute_query
+        ensure
+          @mutex.unlock
+        end
+      else
+        ActiveRecord::Base.logger.info("Waiting on result #{Process.clock_gettime(Process::CLOCK_MONOTONIC)}")
+        @mutex.synchronize do
+          return if @executed
+          execute_query
+        end
       end
     end
 
