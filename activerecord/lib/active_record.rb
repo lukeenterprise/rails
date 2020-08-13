@@ -85,6 +85,7 @@ module ActiveRecord
     autoload :AttributeAssignment
     autoload :AttributeMethods
     autoload :AutosaveAssociation
+    autoload :AsynchronousQueriesTracker
 
     autoload :LegacyYamlAdapter
 
@@ -103,6 +104,7 @@ module ActiveRecord
     end
 
     autoload :Result
+    autoload :FutureResult
     autoload :TableMetadata
     autoload :Type
   end

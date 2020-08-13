@@ -147,6 +147,15 @@ module ActiveRecord
         Thread.current.thread_variable_set(:ar_connection_handler, handler)
       end
 
+      def self.asynchronous_queries_tracker
+        Thread.current.thread_variable_get(:ar_asynchronous_queries_tracker) ||
+          self.asynchronous_queries_tracker = AsynchronousQueriesTracker.new
+      end
+
+      def self.asynchronous_queries_tracker=(handler)
+        Thread.current.thread_variable_set(:ar_asynchronous_queries_tracker, handler)
+      end
+
       def self.current_shard
         Thread.current.thread_variable_get(:ar_shard) || default_shard
       end
