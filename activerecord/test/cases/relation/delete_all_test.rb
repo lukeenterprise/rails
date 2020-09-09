@@ -88,6 +88,25 @@ class DeleteAllTest < ActiveRecord::TestCase
     assert_equal pets.count, pets.delete_all
   end
 
+  def test_delete_all_from
+    pets = Pet.includes(:toys).where(toys: { name: "Bone" })
+    assert_equal 1, pets.count
+    scope = Pet.from(pets, :pets)
+    assert_equal 1, scope.count
+
+    assert_raise ActiveRecord::StatementInvalid do
+      scope.delete_all
+    end
+  end
+
+  def test_delete_all_from_index_hints
+    skip unless current_adapter?(:Mysql2Adapter)
+
+    pets = Pet.from("#{Pet.quoted_table_name} IGNORE INDEX(PRIMARY)").includes(:toys).where(toys: { name: "Bone" })
+    assert_equal 1, pets.count
+    assert_equal 1, pets.delete_all
+  end
+
   def test_delete_all_with_order_and_limit_deletes_subset_only
     author = authors(:david)
     limited_posts = Post.where(author: author).order(:id).limit(1)

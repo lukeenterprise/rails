@@ -22,14 +22,13 @@ module Arel # :nodoc: all
         def visit_Arel_Nodes_DeleteStatement(o, collector)
           o = prepare_delete_statement(o)
 
-          if has_join_sources?(o)
-            collector << "DELETE "
-            visit o.relation.left, collector
-            collector << " FROM "
-          else
-            collector << "DELETE FROM "
+          collector << "DELETE FROM "
+          visit(o.table, collector)
+
+          if o.relation
+            collector << " USING "
+            collector = visit o.relation, collector
           end
-          collector = visit o.relation, collector
 
           collect_nodes_for o.wheres, collector, " WHERE ", " AND "
           collect_nodes_for o.orders, collector, " ORDER BY "

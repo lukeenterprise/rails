@@ -589,7 +589,8 @@ module ActiveRecord
       end
 
       stmt = Arel::DeleteManager.new
-      stmt.from(arel.join_sources.empty? ? table : arel.source)
+      stmt.table(table)
+      stmt.from(arel.source)
       stmt.key = table[primary_key]
       stmt.take(arel.limit)
       stmt.offset(arel.offset)

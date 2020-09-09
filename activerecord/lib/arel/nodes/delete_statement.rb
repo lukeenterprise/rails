@@ -3,7 +3,7 @@
 module Arel # :nodoc: all
   module Nodes
     class DeleteStatement < Arel::Nodes::Node
-      attr_accessor :left, :right, :orders, :limit, :offset, :key
+      attr_accessor :left, :right, :orders, :limit, :offset, :key, :table
 
       alias :relation :left
       alias :relation= :left=

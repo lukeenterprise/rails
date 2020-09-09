@@ -10,6 +10,10 @@ module Arel # :nodoc: all
       @ctx = @ast
     end
 
+    def table(table)
+      @ast.table = table
+    end
+
     def from(relation)
       @ast.relation = relation
       self
