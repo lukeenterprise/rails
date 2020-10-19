@@ -88,6 +88,14 @@ module ActiveSupport
 
   cattr_accessor :test_order # :nodoc:
 
+  def self.legacy_cache_format
+    Cache.legacy_format
+  end
+
+  def self.legacy_cache_format=(value)
+    Cache.legacy_format = value
+  end
+
   def self.to_time_preserves_timezone
     DateAndTime::Compatibility.preserve_timezone
   end
