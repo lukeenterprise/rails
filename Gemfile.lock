@@ -408,7 +408,7 @@ GEM
     rb-inotify (0.10.1)
       ffi (~> 1.0)
     rdoc (6.2.1)
-    redcarpet (3.2.3)
+    redcarpet (3.5.1)
     redis (4.2.2)
     regexp_parser (1.7.1)
     representable (3.0.4)
@@ -606,7 +606,7 @@ DEPENDENCIES
   rack-cache (~> 1.2)
   rails!
   rake (>= 11.1)
-  redcarpet (~> 3.2.3)
+  redcarpet (~> 3.5.1)
   redis (~> 4.0)
   redis-namespace!
   resque
